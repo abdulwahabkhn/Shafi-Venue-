@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-03T05:46:15.064Z",
+  "title": "Design System: Shafi Complex & Marquee",
+  "extensions": {
+    "colorMeta": {
+      "night-lacquer": {
+        "role": "neutral",
+        "displayName": "Night Lacquer",
+        "canonical": "#0b1110",
+        "tonalRamp": ["oklch(15% 0.012 165)", "oklch(25% 0.012 165)", "oklch(36% 0.012 165)", "oklch(48% 0.012 165)", "oklch(60% 0.012 165)", "oklch(72% 0.012 165)", "oklch(84% 0.012 165)", "oklch(95% 0.012 165)"]
+      },
+      "masthead-black": {
+        "role": "neutral",
+        "displayName": "Masthead Black",
+        "canonical": "#080808",
+        "tonalRamp": ["oklch(15% 0 0)", "oklch(25% 0 0)", "oklch(36% 0 0)", "oklch(48% 0 0)", "oklch(60% 0 0)", "oklch(72% 0 0)", "oklch(84% 0 0)", "oklch(95% 0 0)"]
+      },
+      "courtyard-green-deep": {
+        "role": "secondary",
+        "displayName": "Deep Courtyard Green",
+        "canonical": "#0a2824",
+        "tonalRamp": ["oklch(15% 0.055 170)", "oklch(25% 0.055 170)", "oklch(36% 0.055 170)", "oklch(48% 0.055 170)", "oklch(60% 0.055 170)", "oklch(72% 0.055 170)", "oklch(84% 0.055 170)", "oklch(95% 0.055 170)"]
+      },
+      "courtyard-green": {
+        "role": "secondary",
+        "displayName": "Courtyard Green",
+        "canonical": "#254238",
+        "tonalRamp": ["oklch(15% 0.048 160)", "oklch(25% 0.048 160)", "oklch(36% 0.048 160)", "oklch(48% 0.048 160)", "oklch(60% 0.048 160)", "oklch(72% 0.048 160)", "oklch(84% 0.048 160)", "oklch(95% 0.048 160)"]
+      },
+      "ceremonial-gold": {
+        "role": "primary",
+        "displayName": "Ceremonial Gold",
+        "canonical": "#d2a34d",
+        "tonalRamp": ["oklch(15% 0.125 78)", "oklch(25% 0.125 78)", "oklch(36% 0.125 78)", "oklch(48% 0.125 78)", "oklch(60% 0.125 78)", "oklch(72% 0.125 78)", "oklch(84% 0.125 78)", "oklch(95% 0.125 78)"]
+      },
+      "action-gold": {
+        "role": "primary",
+        "displayName": "Action Gold",
+        "canonical": "#d89d48",
+        "tonalRamp": ["oklch(15% 0.14 72)", "oklch(25% 0.14 72)", "oklch(36% 0.14 72)", "oklch(48% 0.14 72)", "oklch(60% 0.14 72)", "oklch(72% 0.14 72)", "oklch(84% 0.14 72)", "oklch(95% 0.14 72)"]
+      },
+      "action-gold-hover": {
+        "role": "primary",
+        "displayName": "Action Gold Hover",
+        "canonical": "#e1b45f",
+        "tonalRamp": ["oklch(15% 0.115 78)", "oklch(25% 0.115 78)", "oklch(36% 0.115 78)", "oklch(48% 0.115 78)", "oklch(60% 0.115 78)", "oklch(72% 0.115 78)", "oklch(84% 0.115 78)", "oklch(95% 0.115 78)"]
+      },
+      "warm-ivory": {
+        "role": "neutral",
+        "displayName": "Warm Ivory",
+        "canonical": "#e8e0d1",
+        "tonalRamp": ["oklch(15% 0.022 85)", "oklch(25% 0.022 85)", "oklch(36% 0.022 85)", "oklch(48% 0.022 85)", "oklch(60% 0.022 85)", "oklch(72% 0.022 85)", "oklch(84% 0.022 85)", "oklch(95% 0.022 85)"]
+      },
+      "hero-ivory": {
+        "role": "neutral",
+        "displayName": "Hero Ivory",
+        "canonical": "#f3ead9",
+        "tonalRamp": ["oklch(15% 0.026 85)", "oklch(25% 0.026 85)", "oklch(36% 0.026 85)", "oklch(48% 0.026 85)", "oklch(60% 0.026 85)", "oklch(72% 0.026 85)", "oklch(84% 0.026 85)", "oklch(95% 0.026 85)"]
+      },
+      "service-paper": {
+        "role": "neutral",
+        "displayName": "Service Paper",
+        "canonical": "#f0e9da",
+        "tonalRamp": ["oklch(15% 0.025 85)", "oklch(25% 0.025 85)", "oklch(36% 0.025 85)", "oklch(48% 0.025 85)", "oklch(60% 0.025 85)", "oklch(72% 0.025 85)", "oklch(84% 0.025 85)", "oklch(95% 0.025 85)"]
+      },
+      "ledger-rule": {
+        "role": "neutral",
+        "displayName": "Ledger Rule",
+        "canonical": "#b7ad9a",
+        "tonalRamp": ["oklch(15% 0.025 78)", "oklch(25% 0.025 78)", "oklch(36% 0.025 78)", "oklch(48% 0.025 78)", "oklch(60% 0.025 78)", "oklch(72% 0.025 78)", "oklch(84% 0.025 78)", "oklch(95% 0.025 78)"]
+      },
+      "service-ink-soft": {
+        "role": "neutral",
+        "displayName": "Service Soft Ink",
+        "canonical": "#4b554f",
+        "tonalRamp": ["oklch(15% 0.02 160)", "oklch(25% 0.02 160)", "oklch(36% 0.02 160)", "oklch(48% 0.02 160)", "oklch(60% 0.02 160)", "oklch(72% 0.02 160)", "oklch(84% 0.02 160)", "oklch(95% 0.02 160)"]
+      },
+      "service-link-bronze": {
+        "role": "tertiary",
+        "displayName": "Service Link Bronze",
+        "canonical": "#7a541b",
+        "tonalRamp": ["oklch(15% 0.09 75)", "oklch(25% 0.09 75)", "oklch(36% 0.09 75)", "oklch(48% 0.09 75)", "oklch(60% 0.09 75)", "oklch(72% 0.09 75)", "oklch(84% 0.09 75)", "oklch(95% 0.09 75)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Major section statements with architectural scale." },
+      "headline": { "displayName": "Headline", "purpose": "The opening statement over authentic venue imagery." },
+      "title": { "displayName": "Title", "purpose": "Planning steps and compact section introductions." },
+      "body": { "displayName": "Body", "purpose": "Explanatory content with restrained reading measures." },
+      "label": { "displayName": "Label", "purpose": "Operational field labels and compact metadata." },
+      "action": { "displayName": "Action", "purpose": "The booking ribbon's decisive primary action." },
+      "brand-accent": { "displayName": "Brand Accent", "purpose": "Georgia treatment reserved for the compact identity lockup." },
+      "navigation": { "displayName": "Navigation", "purpose": "Primary masthead links at desktop widths." },
+      "compact-action": { "displayName": "Compact Action", "purpose": "Outlined masthead action and similarly constrained labels." },
+      "hero-meta": { "displayName": "Hero Metadata", "purpose": "Venue category statement beneath the hero headline." },
+      "hero-address": { "displayName": "Hero Address", "purpose": "Compact location line over the venue image." },
+      "booking-label": { "displayName": "Booking Label", "purpose": "Small gold labels within the booking ribbon." },
+      "booking-value": { "displayName": "Booking Value", "purpose": "Event, date, and guest values within the booking ribbon." },
+      "planning-heading": { "displayName": "Planning Heading", "purpose": "Compact statement in the green planning band." },
+      "planning-link": { "displayName": "Planning Link", "purpose": "Gold action paired with the planning-band heading." },
+      "service-display": { "displayName": "Service Display", "purpose": "Large introduction to the services ledger." },
+      "service-feature-title": { "displayName": "Featured Service Title", "purpose": "Title of the full-width featured service entry." },
+      "service-standard-title": { "displayName": "Standard Service Title", "purpose": "Titles of paired standard service entries." },
+      "service-body": { "displayName": "Service Body", "purpose": "Explanatory copy throughout the services ledger." },
+      "event-body": { "displayName": "Event Body", "purpose": "Supporting statement in the dark occasion section." },
+      "enquiry-display": { "displayName": "Enquiry Display", "purpose": "Large statement opening the gold enquiry section." },
+      "contact-display": { "displayName": "Contact Display", "purpose": "Large venue-contact statement on courtyard green." },
+      "hero-stack": { "displayName": "Stacked Hero", "purpose": "Hero headline after the architectural axis yields to a stacked composition." },
+      "hero-mobile": { "displayName": "Mobile Hero", "purpose": "Tighter hero headline at phone widths." },
+      "mobile-section-display": { "displayName": "Mobile Section Display", "purpose": "Shared display range for services, events, and enquiry on phones." },
+      "mobile-body": { "displayName": "Mobile Body", "purpose": "Readable 16px body floor for long single-column sections." },
+      "caption": { "displayName": "Caption", "purpose": "Visual-direction disclosures and compact contact metadata." },
+      "contact-number": { "displayName": "Contact Number", "purpose": "Emphasized phone values within direct-contact rows." },
+      "planning-mobile": { "displayName": "Mobile Planning Heading", "purpose": "Planning-band heading at narrow widths." }
+    },
+    "shadows": [
+      { "name": "hero-shade", "value": "inset 29rem 0 12rem rgba(2, 5, 5, .5), inset 0 -9rem 8rem rgba(2, 9, 9, .2)", "purpose": "Protects hero-copy contrast while preserving the lit facade." },
+      { "name": "booking-lift", "value": "0 18px 34px rgba(0, 0, 0, .28)", "purpose": "Separates the functional booking ribbon from venue imagery." },
+      { "name": "field-focus-underline", "value": "0 2px 0 #0b1110", "purpose": "Reinforces focused enquiry fields on the gold surface." }
+    ],
+    "motion": [
+      { "name": "state-color", "value": "180ms ease-out", "purpose": "Default hover transition for navigation and buttons." },
+      { "name": "service-image-drift", "value": "700ms cubic-bezier(.16, 1, .3, 1)", "purpose": "Restrained service-image scale on hover-capable devices." },
+      { "name": "axis-arrival", "value": "900ms cubic-bezier(.16, 1, .3, 1)", "purpose": "Grows the hero's vertical architectural axis downward." },
+      { "name": "ribbon-arrival", "value": "760ms 160ms cubic-bezier(.16, 1, .3, 1)", "purpose": "Reveals the booking ribbon outward from the center." }
+    ],
+    "breakpoints": [
+      { "name": "section-stack", "value": "980px" },
+      { "name": "hero-stack", "value": "900px" },
+      { "name": "mobile", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Header Event Action",
+      "kind": "button",
+      "refersTo": "button-header-outline",
+      "description": "Outlined masthead action used to enter the planning journey.",
+      "html": "<a class=\"ds-header-action\" href=\"#\">Plan your event</a>",
+      "css": ".ds-header-action { display: inline-grid; place-items: center; min-width: 180px; height: 44px; padding: 0 24px; border: 1px solid #d2a34d; border-radius: 0; background: #080808; color: #d2a34d; font-family: Manrope, sans-serif; font-size: 15px; text-decoration: none; transition: color 180ms ease-out, background 180ms ease-out; } .ds-header-action:hover { color: #0b1110; background: #d2a34d; } .ds-header-action:focus-visible { outline: 2px solid #e8e0d1; outline-offset: 4px; } .ds-header-action:active { background: #e1b45f; }"
+    },
+    {
+      "name": "Date Check Action",
+      "kind": "button",
+      "refersTo": "button-date-check",
+      "description": "Gold endpoint of the booking ribbon and its strongest action.",
+      "html": "<button class=\"ds-date-check\" type=\"button\">Check my date</button>",
+      "css": ".ds-date-check { min-width: 240px; height: 72px; padding: 0 24px; border: 0; border-radius: 0; background: #d89d48; color: #0b1110; font-family: Akatab, sans-serif; font-size: 22px; font-weight: 700; cursor: pointer; transition: background 180ms ease-out; } .ds-date-check:hover { background: #e1b45f; } .ds-date-check:focus-visible { outline: 2px solid #e8e0d1; outline-offset: 4px; } .ds-date-check:active { background: #d2a34d; }"
+    },
+    {
+      "name": "WhatsApp Enquiry Action",
+      "kind": "button",
+      "refersTo": "button-enquiry",
+      "description": "Full-width dark submit action used on the gold enquiry section.",
+      "html": "<button class=\"ds-enquiry-action\" type=\"button\"><span>Send enquiry on WhatsApp</span><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M7 17 17 7\"/><path d=\"M7 7h10v10\"/></svg></button>",
+      "css": ".ds-enquiry-action { display: flex; align-items: center; justify-content: space-between; width: min(100%, 620px); min-height: 72px; padding: 0 26px; border: 1px solid #0b1110; border-radius: 0; background: #0b1110; color: #e8e0d1; font-family: Manrope, sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: color 180ms ease-out, background 180ms ease-out; } .ds-enquiry-action:hover { color: #0b1110; background: transparent; } .ds-enquiry-action:focus-visible { outline: 2px solid #0b1110; outline-offset: 4px; } .ds-enquiry-action:active { background: rgba(11, 17, 16, .12); }"
+    },
+    {
+      "name": "Booking Ribbon Field",
+      "kind": "input",
+      "refersTo": "booking-field",
+      "description": "Dark stacked-label field used within the signature booking ribbon.",
+      "html": "<label class=\"ds-booking-field\"><span>Guests</span><span class=\"ds-booking-row\"><input type=\"number\" min=\"1\" placeholder=\"Enter guests\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/></svg></span></label>",
+      "css": ".ds-booking-field { display: flex; flex-direction: column; justify-content: center; width: min(100%, 360px); min-height: 82px; padding: 10px 20px 9px 28px; border: 1px solid #d2a34d; border-radius: 0; background: rgba(5, 10, 9, .97); color: #e8e0d1; font-family: Manrope, sans-serif; } .ds-booking-field > span:first-child { margin-bottom: 8px; color: #d2a34d; font-size: 13px; line-height: 1; } .ds-booking-row { display: flex; align-items: center; gap: 16px; } .ds-booking-row input { width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #e8e0d1; font: inherit; font-size: 20px; } .ds-booking-row input::placeholder { color: #a9a297; opacity: 1; } .ds-booking-row svg { flex: none; color: #d2a34d; } .ds-booking-field:focus-within { outline: 2px solid #e8e0d1; outline-offset: 4px; }"
+    },
+    {
+      "name": "Enquiry Text Field",
+      "kind": "input",
+      "refersTo": "enquiry-field",
+      "description": "Underlined transparent field used on the ceremonial-gold enquiry surface.",
+      "html": "<label class=\"ds-enquiry-field\"><span>Your name</span><input type=\"text\" placeholder=\"Enter your full name\"></label>",
+      "css": ".ds-enquiry-field { display: flex; flex-direction: column; gap: 10px; width: min(100%, 360px); color: #0b1110; font-family: Manrope, sans-serif; } .ds-enquiry-field > span { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; } .ds-enquiry-field input { width: 100%; padding: 14px 0 16px; border: 0; border-bottom: 1px solid rgba(11, 17, 16, .55); border-radius: 0; outline: 0; background: transparent; color: #0b1110; font: inherit; } .ds-enquiry-field input::placeholder { color: #2d3029; opacity: 1; } .ds-enquiry-field input:hover { border-bottom-color: #0b1110; } .ds-enquiry-field input:focus-visible { border-color: #0b1110; box-shadow: 0 2px 0 #0b1110; }"
+    },
+    {
+      "name": "Primary Navigation",
+      "kind": "nav",
+      "description": "Warm-ivory masthead links with a scarce gold hover state.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><a href=\"#\">Venue</a><a href=\"#\">Events</a><a href=\"#\">Planning</a><a href=\"#\">Gallery</a><a href=\"#\">Contact</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 34px; padding: 22px 28px; background: #080808; font-family: Manrope, sans-serif; } .ds-nav a { color: #e8e0d1; font-size: 16px; text-decoration: none; transition: color 180ms ease-out; } .ds-nav a:hover { color: #d2a34d; } .ds-nav a:focus-visible { outline: 2px solid #e8e0d1; outline-offset: 4px; } .ds-nav a:active { color: #e1b45f; }"
+    },
+    {
+      "name": "Featured Service Ledger Entry",
+      "kind": "card",
+      "refersTo": "service-ledger-panel",
+      "description": "Full-width service feature pairing lazy-loaded compressed WebP imagery with a visible conceptual-image disclosure and an event-preselecting enquiry action.",
+      "html": "<article class=\"ds-service-feature\"><div class=\"ds-service-media\" role=\"img\" aria-label=\"Wedding visual direction placeholder\"><span class=\"ds-service-badge\">Visual direction</span></div><div class=\"ds-service-copy\"><h3>Wedding setup</h3><p>Discuss a complete setting with the venue team, from stage direction to guest layout.</p><a href=\"#\">Enquire for a wedding →</a></div></article>",
+      "css": ".ds-service-feature { display: grid; grid-template-columns: 1.35fr .65fr; width: min(100%, 980px); overflow: hidden; border: 1px solid #b7ad9a; border-radius: 0; background: #f0e9da; color: #0b1110; font-family: Manrope, sans-serif; } .ds-service-media { position: relative; min-height: 380px; overflow: hidden; background: linear-gradient(145deg, #e8e0d1, #d2a34d 58%, #254238); transition: transform 700ms cubic-bezier(.16,1,.3,1); } .ds-service-feature:hover .ds-service-media { transform: scale(1.025); } .ds-service-badge { position: absolute; right: 18px; bottom: 18px; padding: 9px 12px; border: 1px solid rgba(210,163,77,.56); border-radius: 0; background: rgba(8,8,8,.82); color: #e8e0d1; font-size: 12px; letter-spacing: .06em; } .ds-service-copy { display: flex; flex-direction: column; justify-content: flex-end; padding: 48px; } .ds-service-copy h3 { margin: 0; font-family: Akatab, sans-serif; font-size: 46px; line-height: 1; letter-spacing: -.025em; } .ds-service-copy p { margin: 24px 0 0; color: #4b554f; line-height: 1.72; } .ds-service-copy a { width: fit-content; margin-top: 34px; color: #7a541b; font-weight: 700; text-underline-offset: 5px; } .ds-service-copy a:hover { text-decoration: underline; } .ds-service-copy a:focus-visible { outline: 2px solid #0b1110; outline-offset: 4px; } .ds-service-copy a:active { color: #0b1110; } @media (max-width: 640px) { .ds-service-feature { grid-template-columns: 1fr; } .ds-service-media { min-height: 0; aspect-ratio: 4 / 3; } .ds-service-copy { padding: 30px 24px 34px; } .ds-service-copy h3 { font-size: 32px; line-height: 1.04; } .ds-service-copy p { margin-top: 18px; font-size: 16px; line-height: 1.65; } }"
+    },
+    {
+      "name": "Standard Service Ledger Entry",
+      "kind": "card",
+      "refersTo": "service-ledger-panel",
+      "description": "Half-width desktop service entry that becomes one image-copy ledger row on mobile, preserves the visual-direction disclosure, and preselects its event type before enquiry.",
+      "html": "<article class=\"ds-service-standard\"><div class=\"ds-standard-media\" role=\"img\" aria-label=\"Valima visual direction placeholder\"><span>Visual direction</span></div><div class=\"ds-standard-copy\"><h3>Valima celebration</h3><p>Plan a refined reception setting with a calm, welcoming atmosphere.</p><a href=\"#\">Plan a valima →</a></div></article>",
+      "css": ".ds-service-standard { display: grid; grid-template-rows: minmax(300px, 28vw) auto; width: min(100%, 520px); border: 1px solid #b7ad9a; border-radius: 0; background: #f0e9da; color: #0b1110; font-family: Manrope, sans-serif; } .ds-standard-media { position: relative; overflow: hidden; background: linear-gradient(145deg, #e8e0d1, #d2a34d 54%, #0a2824); } .ds-standard-media span { position: absolute; right: 18px; bottom: 18px; padding: 9px 12px; border: 1px solid rgba(210,163,77,.56); background: rgba(8,8,8,.82); color: #e8e0d1; font-size: 12px; letter-spacing: .06em; } .ds-standard-copy { min-height: 300px; padding: 42px; } .ds-standard-copy h3 { margin: 0; font-family: Akatab, sans-serif; font-size: 40px; line-height: 1; letter-spacing: -.025em; } .ds-standard-copy p { margin: 24px 0 0; color: #4b554f; line-height: 1.72; } .ds-standard-copy a { display: inline-block; margin-top: 34px; color: #7a541b; font-weight: 700; text-underline-offset: 5px; } .ds-standard-copy a:hover { text-decoration: underline; } .ds-standard-copy a:focus-visible { outline: 2px solid #0b1110; outline-offset: 4px; } .ds-standard-copy a:active { color: #0b1110; } @media (max-width: 640px) { .ds-service-standard { grid-template-rows: auto auto; } .ds-standard-media { aspect-ratio: 4 / 3; } .ds-standard-copy { min-height: 0; padding: 30px 24px 34px; } .ds-standard-copy h3 { font-size: 32px; line-height: 1.04; } .ds-standard-copy p { margin-top: 18px; font-size: 16px; line-height: 1.65; } }"
+    },
+    {
+      "name": "Service Planning Ledger Close",
+      "kind": "custom",
+      "description": "Full-width deep-green close to the services ledger that turns inspiration into a direct planning conversation.",
+      "html": "<article class=\"ds-service-planning\"><div><h3>Event planning &amp; stage direction</h3><p>Start with the occasion, preferred styling and practical details.</p></div><a href=\"#\">Start the conversation ↗</a></article>",
+      "css": ".ds-service-planning { display: grid; grid-template-columns: 1.35fr .65fr; gap: 60px; align-items: end; width: min(100%, 980px); padding: 64px; border-radius: 0; background: #0a2824; color: #e8e0d1; font-family: Manrope, sans-serif; } .ds-service-planning h3 { margin: 0; font-family: Akatab, sans-serif; font-size: 48px; line-height: 1; letter-spacing: -.025em; } .ds-service-planning p { max-width: 54ch; margin: 24px 0 0; color: #b9c7c0; line-height: 1.72; } .ds-service-planning a { justify-self: end; color: #d2a34d; font-weight: 700; text-underline-offset: 5px; } .ds-service-planning a:hover { text-decoration: underline; } .ds-service-planning a:focus-visible { outline: 2px solid #e8e0d1; outline-offset: 4px; } .ds-service-planning a:active { color: #e1b45f; } @media (max-width: 640px) { .ds-service-planning { grid-template-columns: 1fr; gap: 30px; padding: 38px 24px 42px; } .ds-service-planning h3 { font-size: 32px; line-height: 1.04; } .ds-service-planning p { margin-top: 18px; font-size: 16px; line-height: 1.65; } .ds-service-planning a { justify-self: start; min-height: 44px; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Courtyard Axis",
+    "overview": "The system turns the venue's real architecture into interface structure. Near-black lacquer frames the experience, courtyard greens establish a locally grounded sense of place, and muted ceremonial gold traces alignment, thresholds, and decisive actions. Authentic exterior imagery remains the primary visual evidence; conceptual service imagery is treated as an explicitly disclosed planning direction inside a warm, paper-like ledger.\n\nThe character is assured, warm, and exact. Large humanist sans-serif statements create contemporary authority, while restrained supporting copy and squared controls keep the journey direct. Density is editorial rather than sparse: broad image fields and generous section rhythm are counterbalanced by compact ledgers, fine separators, clear enquiry details, and responsive typography that tightens without losing presence.",
+    "keyCharacteristics": [
+      "Authentic venue architecture owns the opening frame.",
+      "A central axis and horizontal booking ribbon turn composition into interaction.",
+      "Lacquer black, deep green, warm ivory, service paper, and rare gold define the material world.",
+      "Squared controls, crisp separators, and ledger-like service rows keep the system precise.",
+      "Conceptual service imagery is clearly disclosed and delivered as compressed WebP assets.",
+      "Motion is restrained, directional, and removed when reduced motion is preferred."
+    ],
+    "rules": [
+      { "name": "The Gold Is Geometry Rule", "body": "Use gold for alignment, action, threshold, and emphasis—not as ambient decoration across an entire surface.", "section": "colors" },
+      { "name": "The Real Place Rule", "body": "Dark overlays may improve legibility, but they must preserve the recognizable venue, its lighting, and its central architectural axis.", "section": "colors" },
+      { "name": "The Evidence Label Rule", "body": "Conceptual imagery must carry a visible \"Visual direction\" label and a nearby section disclosure; it never inherits the evidentiary status of authentic venue photography.", "section": "colors" },
+      { "name": "The Humanist Authority Rule", "body": "Use Akatab for authored statements and consequential actions; use Manrope for everything people must scan, read, disclose, or enter.", "section": "typography" },
+      { "name": "The Serif Containment Rule", "body": "Serif type belongs only to the compact brand-name expression associated with the supplied logo; do not turn the site into a cream-serif wedding template.", "section": "typography" },
+      { "name": "The Mobile Presence Rule", "body": "At 640px and below, reduce display scale and leading together, keep service titles at 32px, and preserve a 16px body floor rather than miniaturizing the desktop hierarchy.", "section": "typography" },
+      { "name": "The Axis-to-Stack Rule", "body": "Preserve the fountain-aligned composition on wide screens; below 900px, replace it with a clear vertical sequence rather than compressing the axis.", "section": "layout" },
+      { "name": "The Ledger-to-Column Rule", "body": "Preserve shared borders and reading order when the two-column services ledger becomes a single mobile column; do not split its entries into floating cards.", "section": "layout" },
+      { "name": "The Architecture Before Shadow Rule", "body": "Establish depth with image, tone, and rules first; reserve cast shadow for the booking ribbon and use outlines or underlines for focus response.", "section": "elevation" },
+      { "name": "The Surface-Contrast Focus Rule", "body": "Focus color follows the surface beneath it: warm ivory on dark material, night lacquer on light material, always with a visible offset where an outline is used.", "section": "elevation" },
+      { "name": "The Square-Cut Rule", "body": "New interactive controls use square corners unless a supplied identity asset carries its own intrinsic silhouette.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do let authentic venue architecture and recognizable imagery carry the primary visual claim.",
+      "Do use ceremonial gold sparingly for actions, rules, active affordances, and alignment.",
+      "Do preserve square controls, one-pixel separators, large humanist statements, and ledger-like information structures.",
+      "Do keep services as one connected editorial ledger: full-width feature, paired standard entries, and a green planning close.",
+      "Do stack complex desktop compositions clearly at 980px and 900px, then use 20px gutters, 72px section padding, 32px service titles, and 16px body copy at 640px.",
+      "Do preselect the service's event type before carrying a visitor into the enquiry form.",
+      "Do preserve visible disclosure on conceptual imagery, lazy-load service media, ship its compressed WebP form, and retain metadata alongside the assets.",
+      "Do provide contrast-aware keyboard focus and honor reduced-motion preference."
+    ],
+    "donts": [
+      "Don't add generic luxury flourishes, bridal ornament, purple gradients, pervasive glass effects, or pill-heavy UI.",
+      "Don't convert the booking ribbon, services ledger, planning band, or contact rows into rounded floating cards.",
+      "Don't use gold as a full-page ambient wash outside the established enquiry section or as decoration without meaning.",
+      "Don't present conceptual service imagery as verified venue evidence or remove its \"Visual direction\" labels and section disclosure.",
+      "Don't substitute heavyweight raster formats for the established compressed WebP service assets without a measured quality or compatibility reason.",
+      "Don't invent visualized pricing, capacity, packages, ratings, testimonials, or statistics."
+    ]
+  }
+}

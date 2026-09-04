@@ -1,0 +1,6 @@
+{
+  "prompt": "Use case: photorealistic-natural. Production website hero plate recreating the authentic Shafi Complex & Marquee exterior from the supplied venue photograph. Preserve the recognizable symmetrical facade, central entrance, circular fountain, forecourt geometry, rooflines, columns, signage, warm evening lighting and centered architectural axis. No people, invented structures, event setup, UI, watermark or fantasy architecture. This WebP is a production-optimized derivative of assets/plates/venue-hero.png.",
+  "derivedFrom": "assets/plates/venue-hero.png",
+  "operation": "Resized to a maximum width of 1920px and encoded as WebP at quality 84 for production delivery.",
+  "sourceNote": "The source image and its ImageGen prompt provenance remain recorded in venue-hero.png.json."
+}
