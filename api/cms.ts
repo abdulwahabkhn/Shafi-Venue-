@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { contentSchema } from "../shared/content";
+import { contentSchema } from "../shared/content.js";
 import {
   allowLogin,
   configured,
@@ -8,7 +8,7 @@ import {
   sameOrigin,
   sessionCookie,
   sessionValid,
-} from "../server/auth";
+} from "../server/auth.js";
 import {
   localDirectory,
   localStorage,
@@ -16,7 +16,7 @@ import {
   readContent,
   saveImage,
   storageReady,
-} from "../server/storage";
+} from "../server/storage.js";
 
 const json = (
   value: unknown,

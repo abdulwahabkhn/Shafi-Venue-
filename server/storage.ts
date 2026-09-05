@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { get, put } from "@vercel/blob";
-import type { PublishedContent, SiteContent } from "../shared/content";
+import type { PublishedContent, SiteContent } from "../shared/content.js";
 
 const pathname = "cms/published.json";
 const empty: PublishedContent = {

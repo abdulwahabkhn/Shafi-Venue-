@@ -1,5 +1,5 @@
 import type { Plugin } from "vite";
-import handler from "../api/cms";
+import handler from "../api/cms.js";
 
 export function cmsPlugin(): Plugin {
   return {
