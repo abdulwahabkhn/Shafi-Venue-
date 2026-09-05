@@ -1,13 +1,13 @@
 import { ArrowRight, UsersRound } from 'lucide-react'
-import { halls } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 import { SectionHeading } from './SectionHeading'
 
 export function HallsSection() {
+  const { halls, headings } = useSiteContent()
   return (
     <section className="halls section section--ivory" id="halls" aria-labelledby="halls-title">
       <SectionHeading
-        title="Two halls. One considered celebration."
-        description="Explore both spaces, then confirm capacity, layout and availability directly with the venue team. No unverified capacity figures are presented here."
+        {...headings.halls}
         tone="light"
       />
 
@@ -16,7 +16,7 @@ export function HallsSection() {
           <article className={`hall ${index % 2 ? 'hall--reverse' : ''}`} key={hall.name}>
             <figure className="hall__media">
               <picture>
-                <source srcSet={hall.imageAvif} sizes="(max-width: 960px) 100vw, 60vw" type="image/avif" />
+                {hall.imageAvif && <source srcSet={hall.imageAvif} sizes="(max-width: 960px) 100vw, 60vw" type="image/avif" />}
                 <img src={hall.image} alt={`${hall.name} representative event styling`} width="1536" height="1024" loading="lazy" decoding="async" fetchPriority="low" />
               </picture>
               <figcaption>{hall.imageNote}</figcaption>

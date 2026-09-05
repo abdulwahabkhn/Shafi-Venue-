@@ -8,10 +8,11 @@ import { Header } from './components/Header'
 import { Hero } from './components/Hero'
 import { PackagesSection } from './components/PackagesSection'
 import { ServicesSection } from './components/ServicesSection'
+import { ContentProvider } from './content/ContentProvider'
 
 export default function App() {
   return (
-    <div className="site-shell">
+    <ContentProvider><div className="site-shell">
       <Header />
       <main>
         <Hero />
@@ -24,6 +25,6 @@ export default function App() {
         <ContactSection />
       </main>
       <Footer />
-    </div>
+    </div></ContentProvider>
   )
 }

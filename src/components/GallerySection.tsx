@@ -1,18 +1,18 @@
 import { useState } from 'react'
-import { galleryItems } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 import { SectionHeading } from './SectionHeading'
 
-const categories = ['All', 'Venue', 'Decor', 'Dining']
 
 export function GallerySection() {
+  const { galleryItems, headings } = useSiteContent()
+  const categories = ['All', ...new Set(galleryItems.map(item => item.category))]
   const [activeCategory, setActiveCategory] = useState('All')
   const visibleItems = activeCategory === 'All' ? galleryItems : galleryItems.filter((item) => item.category === activeCategory)
 
   return (
     <section className="gallery section section--charcoal" id="gallery" aria-labelledby="gallery-title">
       <SectionHeading
-        title="A glimpse of the atmosphere."
-        description="The exterior image shows the venue. Decor and dining images communicate presentation direction and must be replaced with approved venue photography before commercial launch."
+        {...headings.gallery}
         tone="dark"
       />
 

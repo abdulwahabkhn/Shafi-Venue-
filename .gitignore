@@ -1,4 +1,5 @@
 node_modules/
+.cms-local/
 dist/
 dist-ssr/
 .vercel/
@@ -23,3 +24,5 @@ yarn-error.log*
 pnpm-debug.log*
 .DS_Store
 Thumbs.db
+
+.env*

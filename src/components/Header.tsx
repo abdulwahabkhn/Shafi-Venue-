@@ -5,6 +5,14 @@ import { navigation } from '../data/site'
 
 export function Header() {
   const [open, setOpen] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const checkSession = () => { fetch('/api/cms?action=session').then(response => response.ok ? response.json() : null).then(result => setAuthenticated(Boolean(result?.authenticated))).catch(() => setAuthenticated(false)) }
+    checkSession()
+    window.addEventListener('focus', checkSession)
+    return () => window.removeEventListener('focus', checkSession)
+  }, [])
 
   useEffect(() => {
     const closeOnWideScreen = () => {
@@ -15,13 +23,14 @@ export function Header() {
   }, [])
 
   return (
-    <header className="site-header">
+    <header className={authenticated ? 'site-header site-header--authenticated' : 'site-header'}>
       <a className="brand" href="#home" aria-label="Shafi Complex and Marquee home" onClick={() => setOpen(false)}>
         <img src={logo} alt="" width="72" height="72" />
         <span>Shafi Complex <em>&amp; Marquee</em></span>
       </a>
 
       <nav className={open ? 'primary-nav primary-nav--open' : 'primary-nav'} aria-label="Primary navigation">
+        {authenticated && <a href="/admin">Manage website</a>}
         {navigation.map((item) => (
           <a key={item.href} href={item.href} onClick={() => setOpen(false)}>{item.label}</a>
         ))}

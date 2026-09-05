@@ -12,6 +12,7 @@ if (!html.includes(rootMarker)) {
 }
 
 const { render } = await import(pathToFileURL(serverEntryPath).href)
+await writeFile(resolve('dist/admin.html'), html.replace('</head>', '<meta name="robots" content="noindex,nofollow" /></head>'))
 const appHtml = render()
 html = html.replace(rootMarker, `<div id="root">${appHtml}</div>`)
 

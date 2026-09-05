@@ -6,7 +6,7 @@ import {
   UsersRound,
   UtensilsCrossed,
 } from 'lucide-react'
-import { services } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 import { SectionHeading } from './SectionHeading'
 
 const icons = {
@@ -19,11 +19,11 @@ const icons = {
 }
 
 export function ServicesSection() {
+  const { services, headings } = useSiteContent()
   return (
     <section className="services section section--forest" id="services" aria-labelledby="services-title">
       <SectionHeading
-        title="The details that hold the day together."
-        description="Start with the services relevant to your occasion. Availability, inclusions and final arrangements are confirmed by the venue team."
+        {...headings.services}
         tone="dark"
       />
 

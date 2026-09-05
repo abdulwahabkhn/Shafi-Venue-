@@ -1,12 +1,13 @@
 import { ArrowDownRight, MapPin } from 'lucide-react'
-import { address, hero } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 
 export function Hero() {
+  const { hero, contact: { address } } = useSiteContent()
   return (
     <section className="hero" id="home" aria-labelledby="hero-title">
       <picture>
-        <source media="(max-width: 720px)" srcSet={hero.mobileAvif} type="image/avif" />
-        <source srcSet={hero.desktopAvif} type="image/avif" />
+        {hero.mobileAvif && <source media="(max-width: 720px)" srcSet={hero.mobileAvif} type="image/avif" />}
+        {hero.desktopAvif && <source srcSet={hero.desktopAvif} type="image/avif" />}
         <img className="hero__image" src={hero.image} alt="Shafi Complex and Marquee exterior illuminated at dusk" width="1792" height="1024" fetchPriority="high" />
       </picture>
       <div className="hero__veil" aria-hidden="true" />

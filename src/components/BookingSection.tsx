@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { ArrowUpRight, MessageCircle, Phone } from 'lucide-react'
-import { eventOptions, hallOptions, packageOptions, phoneDisplay, whatsappNumber } from '../data/site'
+import { eventOptions } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 import { DatePicker } from './DatePicker'
 import { SelectField } from './SelectField'
 
@@ -8,6 +9,9 @@ type OpenField = 'event' | 'hall' | 'date' | 'package' | null
 type FormErrors = { name?: string; phone?: string; date?: string }
 
 export function BookingSection() {
+  const { halls, packages, contact: { phoneDisplay, whatsappNumber }, headings } = useSiteContent()
+  const hallOptions = ['No preference', ...halls.map(item => item.name)]
+  const packageOptions = ['No package preference', ...packages.map(item => item.name)]
   const [eventType, setEventType] = useState(eventOptions[0])
   const [hall, setHall] = useState(hallOptions[0])
   const [packagePreference, setPackagePreference] = useState(packageOptions[0])
@@ -76,8 +80,8 @@ export function BookingSection() {
   return (
     <section className="booking section" id="booking" aria-labelledby="booking-title">
       <div className="booking__intro">
-        <h2 id="booking-title">Tell us what you are planning.</h2>
-        <p>Share the essentials and continue the conversation on WhatsApp. Every booking, package and date remains subject to direct confirmation.</p>
+        <h2 id="booking-title">{headings.booking.title}</h2>
+        <p>{headings.booking.description}</p>
         <div className="booking__contact">
           <a href={`tel:+${whatsappNumber}`}><Phone aria-hidden="true" /><span>Call the venue<strong>{phoneDisplay}</strong></span></a>
           <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><MessageCircle aria-hidden="true" /><span>Open WhatsApp<strong>{phoneDisplay}</strong></span></a>

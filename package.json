@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "cms:setup": "node scripts/cms-setup.mjs",
+    "test:cms": "node scripts/test-cms.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir node_modules/.shafi-prerender && node scripts/prerender.mjs",
     "preview": "vite preview"
@@ -11,11 +13,14 @@
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/manrope": "^5.3.0",
+    "@vercel/blob": "^2.8.0",
     "lucide-react": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "^6.1.1",

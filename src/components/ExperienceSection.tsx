@@ -1,12 +1,12 @@
-import { journey } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 import { SectionHeading } from './SectionHeading'
 
 export function ExperienceSection() {
+  const { journey, headings } = useSiteContent()
   return (
     <section className="experience section section--charcoal" aria-labelledby="experience-title">
       <SectionHeading
-        title="From first question to event day."
-        description="A clear, human process keeps every decision connected. Booking remains provisional until the venue team confirms availability and terms."
+        {...headings.experience}
         tone="dark"
       />
 

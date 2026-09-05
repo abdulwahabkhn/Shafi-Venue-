@@ -1,9 +1,13 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true,
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "api", "server", "shared"]
 }

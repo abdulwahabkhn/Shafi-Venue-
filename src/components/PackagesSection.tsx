@@ -1,13 +1,13 @@
 import { ChevronDown } from 'lucide-react'
-import { packages } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 import { SectionHeading } from './SectionHeading'
 
 export function PackagesSection() {
+  const { packages, headings, packageDisclosure } = useSiteContent()
   return (
     <section className="packages section section--paper" id="packages" aria-labelledby="packages-title">
       <SectionHeading
-        title="Begin with an outline. Shape the rest together."
-        description="These are editable enquiry starting points, not confirmed commercial packages. Pricing and final inclusions are discussed directly with Shafi Complex & Marquee."
+        {...headings.packages}
         tone="light"
       />
 
@@ -29,7 +29,7 @@ export function PackagesSection() {
           </details>
         ))}
       </div>
-      <p className="section-disclosure">Package names and inclusions are presentation examples only. The venue must supply approved packages, prices and terms before launch.</p>
+      {packageDisclosure && <p className="section-disclosure">{packageDisclosure}</p>}
     </section>
   )
 }

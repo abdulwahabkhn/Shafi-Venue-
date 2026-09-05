@@ -1,13 +1,14 @@
 import { ArrowUpRight, Clock3, Mail, MapPin, MessageCircle, Phone } from 'lucide-react'
 import exteriorImage from '../../public/media/shafi-marquee-exterior.jpg'
-import { address, emailAddress, mapsUrl, phoneDisplay, whatsappNumber } from '../data/site'
+import { useSiteContent } from '../content/ContentProvider'
 
 export function ContactSection() {
+  const { contact: { address, emailAddress, mapsUrl, phoneDisplay, whatsappNumber, hours }, headings } = useSiteContent()
   return (
     <section className="contact section section--forest" id="contact" aria-labelledby="contact-title">
       <div className="contact__heading">
-        <h2 id="contact-title">Visit the venue. Speak with the team.</h2>
-        <p>For availability, viewing arrangements and event questions, contact Shafi Complex &amp; Marquee directly.</p>
+        <h2 id="contact-title">{headings.contact.title}</h2>
+        <p>{headings.contact.description}</p>
       </div>
 
       <a className="map-panel" href={mapsUrl} target="_blank" rel="noreferrer" aria-label="Open Shafi Complex and Marquee in Google Maps">
@@ -20,7 +21,7 @@ export function ContactSection() {
         <a href={`tel:+${whatsappNumber}`}><Phone aria-hidden="true" /><span>{phoneDisplay}</span><ArrowUpRight aria-hidden="true" /></a>
         <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><MessageCircle aria-hidden="true" /><span>WhatsApp the venue</span><ArrowUpRight aria-hidden="true" /></a>
         <a href={`mailto:${emailAddress}`}><Mail aria-hidden="true" /><span>{emailAddress}</span><ArrowUpRight aria-hidden="true" /></a>
-        <div><Clock3 aria-hidden="true" /><span>Business hours to be supplied</span></div>
+        <div><Clock3 aria-hidden="true" /><span>{hours || 'Contact the venue for viewing hours.'}</span></div>
       </div>
     </section>
   )
