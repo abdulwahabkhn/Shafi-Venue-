@@ -1,0 +1,7 @@
+.cms-local/
+.env*
+.agents/
+.impeccable/
+node_modules/
+dist/
+*.sqlite*

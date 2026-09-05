@@ -9,13 +9,15 @@ import './styles.css'
 const root = document.getElementById('root')!
 const isAdmin = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')
 const AdminApp = lazy(() => import('./admin/AdminApp'))
+const isManagement = window.location.pathname === '/management' || window.location.pathname.startsWith('/management/')
+const ManagementApp = lazy(() => import('./management/ManagementApp'))
 const app = (
   <StrictMode>
-    {isAdmin ? <Suspense fallback={<p role="status" style={{ padding: '40px' }}>Opening admin portal…</p>}><AdminApp /></Suspense> : <App />}
+    {isAdmin ? <Suspense fallback={<p role="status" style={{ padding: '40px' }}>Opening admin portal…</p>}><AdminApp /></Suspense> : isManagement ? <Suspense fallback={<p role="status" style={{ padding: '40px' }}>Opening venue operations…</p>}><ManagementApp /></Suspense> : <App />}
   </StrictMode>
 )
 
-if (root.hasChildNodes() && !isAdmin) {
+if (root.hasChildNodes() && !isAdmin && !isManagement) {
   hydrateRoot(root, app)
 } else {
   createRoot(root).render(app)

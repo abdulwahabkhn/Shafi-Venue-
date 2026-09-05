@@ -1,7 +1,11 @@
 {
-  "rewrites": [{ "source": "/admin/:path*", "destination": "/admin.html" }],
+  "rewrites": [
+    { "source": "/admin/:path*", "destination": "/admin.html" },
+    { "source": "/management/:path*", "destination": "/admin.html" }
+  ],
   "headers": [
     { "source": "/admin/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }, { "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/management/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }, { "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }] }
   ]
 }
