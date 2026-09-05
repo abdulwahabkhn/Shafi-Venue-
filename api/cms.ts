@@ -6,6 +6,7 @@ import {
   configured,
   passwordMatches,
   requestUrl,
+  type RuntimeRequest,
   sameOrigin,
   sessionCookie,
   sessionValid,
@@ -32,24 +33,56 @@ const json = (
       ...headers,
     },
   });
-async function limitedBody(request: Request, limit: number) {
-  const reader = request.body?.getReader();
-  if (!reader) return Buffer.alloc(0);
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > limit) {
-      await reader.cancel();
-      throw new Error("TOO_LARGE");
+async function limitedBody(request: RuntimeRequest, limit: number) {
+  const rawBody = request.body;
+  if (
+    rawBody !== undefined &&
+    rawBody !== null &&
+    typeof (rawBody as ReadableStream).getReader !== "function"
+  ) {
+    if (Buffer.isBuffer(rawBody)) {
+      if (rawBody.length > limit) throw new Error("TOO_LARGE");
+      return rawBody;
     }
-    chunks.push(value);
+    if (rawBody instanceof Uint8Array) return Buffer.from(rawBody);
+    if (typeof rawBody === "string") return Buffer.from(rawBody);
+    return Buffer.from(JSON.stringify(rawBody));
   }
-  return Buffer.concat(chunks);
+  const reader =
+    typeof (rawBody as ReadableStream | undefined)?.getReader === "function"
+      ? (rawBody as ReadableStream).getReader()
+      : null;
+  if (reader) {
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) {
+        await reader.cancel();
+        throw new Error("TOO_LARGE");
+      }
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks);
+  }
+  const nodeStream = request as unknown as AsyncIterable<Buffer>;
+  if (typeof nodeStream[Symbol.asyncIterator] === "function") {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of nodeStream) {
+      size += chunk.length;
+      if (size > limit) throw new Error("TOO_LARGE");
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  }
+  return Buffer.alloc(0);
 }
-export default async function handler(request: Request): Promise<Response> {
+export default async function handler(
+  request: RuntimeRequest,
+): Promise<Response> {
   const url = requestUrl(request);
   const action = url.searchParams.get("action");
   try {

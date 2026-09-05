@@ -8,13 +8,30 @@ import { get, put } from "@vercel/blob";
 
 const maxAge = 60 * 60 * 8;
 const cookieName = "shafi_admin";
-export function requestUrl(request: Request) {
+export type RuntimeRequest = Request & {
+  headers: Headers | Record<string, string | string[] | undefined>;
+  body?: unknown;
+};
+export function header(request: RuntimeRequest, name: string) {
+  if (
+    request.headers &&
+    typeof (request.headers as Headers).get === "function"
+  ) {
+    return (request.headers as Headers).get(name);
+  }
+  const headers = request.headers as Record<
+    string,
+    string | string[] | undefined
+  >;
+  const value = headers[name.toLowerCase()] ?? headers[name];
+  return Array.isArray(value) ? value[0] : (value ?? null);
+}
+export function requestUrl(request: RuntimeRequest) {
   try {
     return new URL(request.url);
   } catch {
-    const host =
-      request.headers.get("x-forwarded-host") || request.headers.get("host");
-    const protocol = request.headers.get("x-forwarded-proto") || "https";
+    const host = header(request, "x-forwarded-host") || header(request, "host");
+    const protocol = header(request, "x-forwarded-proto") || "https";
     if (!host) throw new Error("Request host is missing.");
     return new URL(request.url, `${protocol}://${host}`);
   }
@@ -34,10 +51,10 @@ const sign = (value: string) =>
   createHmac("sha256", process.env.CMS_SESSION_SECRET!)
     .update(value)
     .digest("base64url");
-export function sessionValid(request: Request) {
+export function sessionValid(request: RuntimeRequest) {
   if (!configured()) return false;
-  const token = request.headers
-    .get("cookie")
+  const token = header(request, "cookie")
+    ?.toString()
     ?.split(";")
     .map((value) => value.trim())
     .find((value) => value.startsWith(`${cookieName}=`))
@@ -62,7 +79,7 @@ export function sessionValid(request: Request) {
     return false;
   }
 }
-export function sessionCookie(request: Request, logout = false) {
+export function sessionCookie(request: RuntimeRequest, logout = false) {
   const payload = Buffer.from(
     JSON.stringify({
       expires: Date.now() + maxAge * 1000,
@@ -74,15 +91,15 @@ export function sessionCookie(request: Request, logout = false) {
     process.env.VERCEL || requestUrl(request).protocol === "https:";
   return `${cookieName}=${logout ? "" : `${payload}.${sign(payload)}`}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${logout ? 0 : maxAge}${secure ? "; Secure" : ""}`;
 }
-export function sameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
+export function sameOrigin(request: RuntimeRequest) {
+  const origin = header(request, "origin");
   return Boolean(origin && origin === requestUrl(request).origin);
 }
 
 // Production counters use conditional Blob writes, so limits survive serverless cold starts.
 const attempts = new Map<string, { count: number; until: number }>();
-export async function allowLogin(request: Request) {
-  const key = request.headers.get("x-vercel-forwarded-for") || "local";
+export async function allowLogin(request: RuntimeRequest) {
+  const key = header(request, "x-vercel-forwarded-for") || "local";
   const now = Date.now();
   if (process.env.VERCEL) {
     const bucket = Math.floor(now / (15 * 60 * 1000));
