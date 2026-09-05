@@ -1,5 +1,5 @@
 import type { Plugin } from "vite";
-import handler from "../api/cms.js";
+import { handleRequest } from "../api/cms.js";
 
 export function cmsPlugin(): Plugin {
   return {
@@ -34,7 +34,7 @@ export function cmsPlugin(): Plugin {
                 : {}),
             },
           );
-          const response = await handler(request);
+          const response = await handleRequest(request);
           outgoing.writeHead(
             response.status,
             Object.fromEntries(response.headers.entries()),

@@ -81,16 +81,15 @@ async function limitedBody(request: RuntimeRequest, limit: number) {
   return Buffer.alloc(0);
 }
 
-// Vercel's Web runtime uses named HTTP methods. The default export remains for the local Vite adapter.
+// Vercel's Web runtime uses named HTTP methods. The default export also supports
+// Vercel's Node `(req, res)` signature so the function always writes a response.
 export async function GET(request: RuntimeRequest) {
-  return handler(request);
+  return handleRequest(request);
 }
 export async function POST(request: RuntimeRequest) {
-  return handler(request);
+  return handleRequest(request);
 }
-export default async function handler(
-  request: RuntimeRequest,
-): Promise<Response> {
+export async function handleRequest(request: RuntimeRequest): Promise<Response> {
   const url = requestUrl(request);
   const action = url.searchParams.get("action");
   try {
@@ -237,4 +236,21 @@ export default async function handler(
       503,
     );
   }
+}
+
+type NodeResponse = {
+  statusCode: number;
+  setHeader: (name: string, value: string) => void;
+  end: (body?: Uint8Array) => void;
+};
+
+export default async function handler(
+  request: RuntimeRequest,
+  response?: NodeResponse,
+): Promise<Response | void> {
+  const result = await handleRequest(request);
+  if (!response) return result;
+  response.statusCode = result.status;
+  result.headers.forEach((value, key) => response.setHeader(key, value));
+  response.end(new Uint8Array(await result.arrayBuffer()));
 }
