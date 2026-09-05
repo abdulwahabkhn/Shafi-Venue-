@@ -8,6 +8,17 @@ import { get, put } from "@vercel/blob";
 
 const maxAge = 60 * 60 * 8;
 const cookieName = "shafi_admin";
+export function requestUrl(request: Request) {
+  try {
+    return new URL(request.url);
+  } catch {
+    const host =
+      request.headers.get("x-forwarded-host") || request.headers.get("host");
+    const protocol = request.headers.get("x-forwarded-proto") || "https";
+    if (!host) throw new Error("Request host is missing.");
+    return new URL(request.url, `${protocol}://${host}`);
+  }
+}
 export const configured = () =>
   Boolean(
     process.env.CMS_ADMIN_PASSWORD &&
@@ -60,12 +71,12 @@ export function sessionCookie(request: Request, logout = false) {
     }),
   ).toString("base64url");
   const secure =
-    process.env.VERCEL || new URL(request.url).protocol === "https:";
+    process.env.VERCEL || requestUrl(request).protocol === "https:";
   return `${cookieName}=${logout ? "" : `${payload}.${sign(payload)}`}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${logout ? 0 : maxAge}${secure ? "; Secure" : ""}`;
 }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return Boolean(origin && origin === new URL(request.url).origin);
+  return Boolean(origin && origin === requestUrl(request).origin);
 }
 
 // Production counters use conditional Blob writes, so limits survive serverless cold starts.

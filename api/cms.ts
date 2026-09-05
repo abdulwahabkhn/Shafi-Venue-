@@ -5,6 +5,7 @@ import {
   allowLogin,
   configured,
   passwordMatches,
+  requestUrl,
   sameOrigin,
   sessionCookie,
   sessionValid,
@@ -49,7 +50,7 @@ async function limitedBody(request: Request, limit: number) {
   return Buffer.concat(chunks);
 }
 export default async function handler(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+  const url = requestUrl(request);
   const action = url.searchParams.get("action");
   try {
     if (request.method === "GET" && action === "session")
