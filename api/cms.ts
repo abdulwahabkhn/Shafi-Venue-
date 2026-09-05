@@ -80,6 +80,14 @@ async function limitedBody(request: RuntimeRequest, limit: number) {
   }
   return Buffer.alloc(0);
 }
+
+// Vercel's Web runtime uses named HTTP methods. The default export remains for the local Vite adapter.
+export async function GET(request: RuntimeRequest) {
+  return handler(request);
+}
+export async function POST(request: RuntimeRequest) {
+  return handler(request);
+}
 export default async function handler(
   request: RuntimeRequest,
 ): Promise<Response> {
