@@ -61,6 +61,9 @@ try{
  const issue={kind:'Cash issue',date:day,amount:10000,person:manager.name,recipientId:manager.id,issuer:gm.name,description:'Daily operations cash'};
  await deny(expenses.saveExpense(randomUUID(),issue,manager),'Hall manager cannot issue cash');
  const issueId=randomUUID();await expenses.saveExpense(issueId,issue,gm);
+ ok((await expenses.acknowledgeCashIssue(manager,issueId)).acknowledgedBy===manager.name,'Cash recipient can acknowledge a handover');
+ ok((await expenses.acknowledgeCashIssue(manager,issueId)).acknowledgedBy===manager.name,'Cash acknowledgement retry is idempotent');
+ await deny(expenses.acknowledgeCashIssue(other,issueId),'Other hall cannot acknowledge cash handover');
  const spend={kind:'Expense',date:day,amount:2000,person:manager.name,recipientId:manager.id,description:'Staff food bill',issueId};
  await deny(expenses.saveExpense(randomUUID(),spend,other),'Manager cannot spend another account cash');
  const expenseId=randomUUID();await expenses.saveExpense(expenseId,spend,manager);

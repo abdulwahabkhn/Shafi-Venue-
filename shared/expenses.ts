@@ -23,7 +23,7 @@ export const ledgerInput = z.object({
   if(v.method==='Bank transfer'&&!v.reference) fail('Enter the bank transfer reference.');
 });
 export type LedgerInput = z.infer<typeof ledgerInput>;
-export type LedgerEntry = LedgerInput & {id:string;created:string;actor:string;voidReason:string|null;voidedAt:string|null;ownerId?:string;reviewStatus?:'Submitted'|'Verified'|'Approved'|'Rejected';reviews?:{status:string;note:string;actor:string;date:string}[]};
+export type LedgerEntry = LedgerInput & {id:string;created:string;actor:string;voidReason:string|null;voidedAt:string|null;ownerId?:string;reviewStatus?:'Submitted'|'Verified'|'Approved'|'Rejected';reviews?:{status:string;note:string;actor:string;date:string}[];acknowledgedAt?:string|null;acknowledgedBy?:string|null};
 export function issueRemaining(issue:LedgerEntry,entries:LedgerEntry[]) {
   return issue.amount-entries.filter(e=>e.issueId===issue.id&&!e.voidedAt).reduce((sum,e)=>sum+e.amount,0);
 }

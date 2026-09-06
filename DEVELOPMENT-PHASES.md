@@ -8,6 +8,10 @@ The Inventory navigation now opens saved stock records instead of the demonstrat
 
 Validation: 23 inventory checks passed, plus all 73 existing booking/employee/expense checks. The production build passes. Browser QA against an isolated schema created an item and recorded 100 opening units successfully; no test stock was added to the production records.
 
+## Cash control increment — 6 September 2026
+
+Added recipient acknowledgement for portal-linked cash issues. The named recipient can acknowledge a handover once; the acknowledgement records timestamp, staff identity and an audit review entry, is idempotent on retry, and is restricted server-side to that account. Cash issuance remains an internal transfer and does not inflate expense totals. The cash workspace now shows awaiting/acknowledged handovers. Validation: 43 staff, employee, expense, private-file and report checks passed in an isolated schema.
+
 Remaining development order: (1) complete inventory reservations/rentals/transfers, (2) cash acknowledgement and daily reconciliation, (3) enquiry intake and supplier balances, (4) history/report refinements plus backup/restore drill, (5) desktop/offline packaging after confirming device and offline rules. Existing employee, booking and expense modules are retained. Automated inventory checks: `node scripts/test-inventory-cloud.mjs` in a disposable isolated schema; migration included in `scripts/migrate-bookings.mjs`.
 
 ## Employee and expense milestone — 6 September 2026

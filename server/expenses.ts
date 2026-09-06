@@ -75,3 +75,19 @@ export async function reviewExpense(actor:Actor,id:string,raw:unknown){
  entry.reviewStatus=input.status;entry.reviews=[...(entry.reviews||[]),{...input,actor:actor.name,date:new Date().toISOString()}];await c.query('UPDATE shafi_expenses SET body=$2 WHERE id=$1',[id,JSON.stringify(entry)]);await c.query('COMMIT');return entry;
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
 }
+export async function acknowledgeCashIssue(actor:Actor,id:string){
+ const c=await bookingPool().connect();
+ try{
+  await c.query('BEGIN');
+  await c.query('SELECT pg_advisory_xact_lock(7352420)');
+  const entry=(await c.query('SELECT body FROM shafi_expenses WHERE id=$1',[id])).rows[0]?.body as LedgerEntry|undefined;
+  if(!entry||entry.kind!=='Cash issue'||entry.voidedAt)throw new Error('Choose an active cash issue.');
+  if(!entry.recipientId)throw new Error('This cash issue has no portal recipient to acknowledge it.');
+  if(entry.recipientId!==actor.id)throw new AccessError('Only the named cash recipient can acknowledge this handover.');
+  if(entry.acknowledgedAt){await c.query('COMMIT');return entry;}
+  entry.acknowledgedAt=new Date().toISOString();entry.acknowledgedBy=actor.name;
+  entry.reviews=[...(entry.reviews||[]),{status:'Acknowledged',note:'Cash handover acknowledged by recipient.',actor:actor.name,date:entry.acknowledgedAt}];
+  await c.query('UPDATE shafi_expenses SET body=$2 WHERE id=$1',[id,JSON.stringify(entry)]);
+  await c.query('COMMIT');return entry;
+ }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+}

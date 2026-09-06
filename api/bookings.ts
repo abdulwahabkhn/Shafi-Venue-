@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { header, requestUrl, sameOrigin, sessionValid, type RuntimeRequest } from '../server/auth.js';
 import { listBookings, bookingHistory, saveBooking, recordPayment } from '../server/postgres-bookings.js';
-import { listExpenses, saveExpense, voidExpense, reviewExpense } from '../server/expenses.js';
+import { listExpenses, saveExpense, voidExpense, reviewExpense, acknowledgeCashIssue } from '../server/expenses.js';
 import { actorFor, hallAccess, requireRole, AccessError } from '../server/staff-auth.js';
 const send=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function handleBookings(request:RuntimeRequest):Promise<Response>{
@@ -26,6 +26,7 @@ export async function handleBookings(request:RuntimeRequest):Promise<Response>{
     if(data.action==='save')return send(await saveExpense(id,data.entry,actor));
     if(data.action==='void')return send(await voidExpense(id,data.reason,actor));
     if(data.action==='review')return send(await reviewExpense(actor,id,data.entry));
+    if(data.action==='acknowledge')return send(await acknowledgeCashIssue(actor,id));
     return send({error:'Unknown ledger action.'},400);
   }
   const existing=(await listBookings()).find(b=>b.id===id);
