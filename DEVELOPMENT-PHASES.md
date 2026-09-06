@@ -1,5 +1,19 @@
 # Shafi operations development
 
+## Employee and expense milestone — 6 September 2026
+
+This section supersedes earlier pending-module statements below. Implemented: named Director, GM, Accountant and hall-scoped manager sessions; Director account administration and session revocation; employee sectors, recruitment/exit records, attendance and manual salary/wage/advance records; cash recipient account linkage; private bill uploads (JPG/PNG/PDF, 2 MB each, five per entry); accountant verification, Director/GM approval and Director-only voids; daily cash/bank activity report with print/save-PDF.
+
+Payroll decision confirmed by the user: employees are paid outside the application. GM or Accountant presses **Mark paid** to record the actual amount, date and method. No transfer, automatic attendance deduction, overtime calculation or automatic advance deduction occurs. One active salary record per employee/month; mistaken entries are voided with history retained. Changes to the agreed rate are audited; the monthly register displays the current agreed rate, not a calculated historical payroll entitlement. Enter the actual paid amount and explain differences.
+
+Access setup: the existing owner CMS login can open `/management` and create named accounts in **Staff accounts**. Do not share the owner password with restricted staff. Staff login is `/management`. Login accounts are separate from employee records. Hall 1 and Hall 2 are configured; multiple managers can be assigned to either hall. Account passwords are hashed; private bills stay in PostgreSQL, never the public website image store.
+
+Verification: 33 booking/cash checks and 40 staff/employee/review/file/report checks pass in disposable isolated database schemas. Run `node scripts/test-bookings-cloud.mjs` and `node scripts/test-staff-cloud.mjs`. Both require the ignored private connection configuration and remove their own schemas. `scripts/dev-staff-test.mjs` creates a separate browser-QA schema and localhost server; press Enter to stop and remove that schema. The QA password in this script is disposable and never a production credential.
+
+Remaining before full ERP completion: inventory/rentals/damage, cash recipient acknowledgements, formal end-of-day closing and reconciliation, salary-history presentation across rehire periods, automated report delivery, backup/restore drill, website enquiry intake, supplier balances and desktop/offline packaging. Daily PDF uses the browser Print → Save as PDF flow, not scheduled delivery. No statutory payroll rules are assumed. The inventory screen is still a labelled preview. No real staff identities are seeded.
+
+Security-best-practices was installed from OpenAI's curated skills and used to guide server permissions, HttpOnly sessions and private file handling. Installation does not guarantee defect-free software; client acceptance testing remains required.
+
 ## Current milestone — 5 September 2026
 
 Cash and expense foundation is now implemented: immutable ledger entries for cash issuance, expenses and cash returns; optional booking references; balances per cash issue; retries protected from duplication; concurrent spending checks; void-with-reason preserving original records. Thirty-three combined database checks passed. Live booking API smoke test confirmed create, reread, payment and idempotent retry, and the browser dashboard displayed the correct balance.

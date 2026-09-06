@@ -28,6 +28,9 @@ import logo from "../../public/media/shafi-marquee-logo.jpg";
 import "./management.css";
 import LiveOperations from './LiveOperations';
 import ExpensesWorkspace from './ExpensesWorkspace';
+import EmployeesWorkspace from './EmployeesWorkspace';
+import ReportsWorkspace from './ReportsWorkspace';
+import { StaffAccess, AccountsWorkspace, useActor, logoutStaff } from './StaffAccess';
 
 type ViewId =
   | "overview"
@@ -37,13 +40,14 @@ type ViewId =
   | "expenses"
   | "employees"
   | "reports"
+  | "accounts"
   | "website";
 
 const navItems: { id: ViewId; label: string; icon: typeof LayoutDashboard; badge?: string }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "bookings", label: "Bookings", icon: ClipboardList },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "inventory", label: "Inventory", icon: Warehouse, badge: "03" },
+  { id: "inventory", label: "Inventory", icon: Warehouse },
   { id: "expenses", label: "Cash & expenses", icon: ReceiptText },
   { id: "employees", label: "Employees", icon: Users },
   { id: "reports", label: "Reports", icon: FileBarChart },
@@ -187,6 +191,10 @@ function ViewShell({ title, description, action, onAction, children }: { title: 
 }
 
 export default function ManagementApp() {
+  return <StaffAccess><ManagementShell /></StaffAccess>;
+}
+function ManagementShell() {
+  const actor = useActor();
   const [view, setView] = useState<ViewId>("overview");
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
@@ -196,10 +204,10 @@ export default function ManagementApp() {
   const activeLabel = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Overview", [view]);
   const navigate = (next: ViewId) => { if(next!==view&&!window.dispatchEvent(new Event('operations:navigate',{cancelable:true})))return; setView(next); setMobileNav(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
   return <div className="ops-app">
-    <header className="ops-topbar"><button className="ops-mobile-menu" aria-label={mobileNav ? "Close navigation" : "Open navigation"} aria-expanded={mobileNav} onClick={() => setMobileNav((value) => !value)}>{mobileNav ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button><a className="ops-brand" href="/management"><img src={logo} width="46" height="46" alt="" /><span>Shafi Complex <small>Venue operations</small></span></a><div className="ops-top-actions"><div className="ops-avatar" aria-label="Administration">SC</div><button className="ops-profile" onClick={() => window.location.assign("/admin/login")}>Admin portal <ChevronDown aria-hidden="true" /></button></div></header>
-    <aside className={`ops-sidebar ${mobileNav ? "is-open" : ""}`}><div className="ops-sidebar-context"><span className="ops-live-dot" />Jaranwala venue <ChevronDown aria-hidden="true" /></div><nav aria-label="Operations sections"><p>Workspace</p>{navItems.map(({ id, label, icon: Icon, badge }) => <button key={id} className={view === id ? "is-active" : ""} aria-current={view === id ? "page" : undefined} onClick={() => navigate(id)}><Icon aria-hidden="true" /><span>{label}</span>{badge && <b>{badge}</b>}</button>)}</nav><div className="ops-sidebar-divider" /><nav aria-label="Connected tools"><p>Connected tools</p><button className={view === "website" ? "is-active" : ""} aria-current={view === "website" ? "page" : undefined} onClick={() => navigate("website")}><Sparkles aria-hidden="true" /><span>Website manager</span></button><button onClick={() => setToast("Settings will be connected to venue permissions.")}><Settings2 aria-hidden="true" /><span>Settings</span></button></nav><div className="ops-sidebar-footer"><div className="ops-sidebar-footer-icon"><Warehouse aria-hidden="true" /></div><strong>Keep the details close.</strong><p>One source of truth for every event.</p><a href="/">Back to public website <ArrowRight aria-hidden="true" /></a></div></aside>
+    <header className="ops-topbar"><button className="ops-mobile-menu" aria-label={mobileNav ? "Close navigation" : "Open navigation"} aria-expanded={mobileNav} onClick={() => setMobileNav((value) => !value)}>{mobileNav ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button><a className="ops-brand" href="/management"><img src={logo} width="46" height="46" alt="" /><span>Shafi Complex <small>Venue operations</small></span></a><div className="ops-top-actions"><div className="ops-avatar" aria-label="Administration">SC</div><button className="ops-profile" onClick={() => { void logoutStaff().catch(e=>setToast(e.message)); }} title="Sign out">{actor.name} · {actor.role}</button></div></header>
+    <aside className={`ops-sidebar ${mobileNav ? "is-open" : ""}`}><div className="ops-sidebar-context"><span className="ops-live-dot" />Jaranwala venue <ChevronDown aria-hidden="true" /></div><nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>actor.role!=='Hall manager'||item.id!=='reports').map(({ id, label, icon: Icon, badge }) => <button key={id} className={view === id ? "is-active" : ""} aria-current={view === id ? "page" : undefined} onClick={() => navigate(id)}><Icon aria-hidden="true" /><span>{label}</span>{badge && <b>{badge}</b>}</button>)}</nav><div className="ops-sidebar-divider" /><nav aria-label="Connected tools"><p>Connected tools</p>{actor.role==='Director'&&<button className={view === "website" ? "is-active" : ""} aria-current={view === "website" ? "page" : undefined} onClick={() => navigate("website")}><Sparkles aria-hidden="true" /><span>Website manager</span></button>}{actor.role==='Director'&&<button onClick={() => navigate("accounts")}><Settings2 aria-hidden="true" /><span>Staff accounts</span></button>}<button onClick={()=>{void logoutStaff().catch(e=>setToast(e.message));}}><ShieldCheck aria-hidden="true"/><span>Sign out</span></button></nav><div className="ops-sidebar-footer"><div className="ops-sidebar-footer-icon"><Warehouse aria-hidden="true" /></div><strong>Keep the details close.</strong><p>One source of truth for every event.</p><a href="/">Back to public website <ArrowRight aria-hidden="true" /></a></div></aside>
     {mobileNav && <button className="ops-sidebar-scrim" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
-    <main className="ops-main"><div className="ops-breadcrumb"><span>Shafi Complex & Marquee</span><ArrowRight aria-hidden="true" /><strong>{activeLabel}</strong>{query && <em>Searching “{query}”</em>}</div>{view === "overview" && <LiveOperations view="overview" />}{view === "bookings" && <LiveOperations view="bookings" />}{view === "calendar" && <LiveOperations view="calendar" />}{["inventory","employees","reports"].includes(view) && <p className="booking-note">Preview only — this module is not connected to saved operational records yet.</p>}{view === "inventory" && <InventoryView onToast={setToast} />}{view === "expenses" && <ExpensesWorkspace />}{view === "employees" && <EmployeesView onToast={setToast} />}{view === "reports" && <ReportsView onToast={setToast} />}{view === "website" && <WebsiteView onToast={setToast} />}</main>
+    <main className="ops-main"><div className="ops-breadcrumb"><span>Shafi Complex & Marquee</span><ArrowRight aria-hidden="true" /><strong>{activeLabel}</strong>{query && <em>Searching “{query}”</em>}</div>{view === "overview" && <LiveOperations view="overview" />}{view === "bookings" && <LiveOperations view="bookings" />}{view === "calendar" && <LiveOperations view="calendar" />}{["inventory"].includes(view) && <p className="booking-note">Preview only — this module is not connected to saved operational records yet.</p>}{view === "inventory" && <InventoryView onToast={setToast} />}{view === "expenses" && <ExpensesWorkspace />}{view === "employees" && <EmployeesWorkspace />}{view === "reports" && <ReportsWorkspace />}{view === "accounts" && actor.role==='Director' && <AccountsWorkspace />}{view === "website" && <WebsiteView onToast={setToast} />}</main>
     {toast && <div className="ops-toast" role="status"><Check aria-hidden="true" />{toast}<button aria-label="Dismiss notification" onClick={() => setToast("")}><X aria-hidden="true" /></button></div>}
   </div>;
 }

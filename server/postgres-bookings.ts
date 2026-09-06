@@ -31,8 +31,8 @@ export async function bookingHistory(id:string):Promise<BookingHistory>{
 async function write<T>(fn:(c:pg.PoolClient)=>Promise<T>):Promise<T>{
  const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query("SET LOCAL lock_timeout='8s'");await c.query('SELECT pg_advisory_xact_lock(7352419)');const result=await fn(c);await c.query('COMMIT');return result;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
 }
-async function audit(c:pg.PoolClient,b:Booking,action:string){await c.query('INSERT INTO shafi_booking_audit(id,booking,action,snapshot,actor) VALUES($1,$2,$3,$4,$5)',[randomUUID(),b.id,action,JSON.stringify(b),'Shared administrator']);}
-export async function saveBooking(raw:unknown,id:string,version?:number){return write(async c=>{
+async function audit(c:pg.PoolClient,b:Booking,action:string,actor='Shared administrator'){await c.query('INSERT INTO shafi_booking_audit(id,booking,action,snapshot,actor) VALUES($1,$2,$3,$4,$5)',[randomUUID(),b.id,action,JSON.stringify(b),actor]);}
+export async function saveBooking(raw:unknown,id:string,version?:number,actor='Shared administrator'){return write(async c=>{
  const existing=(await c.query('SELECT body FROM shafi_bookings WHERE id=$1',[id])).rows[0]?.body as Booking|undefined;
  if(existing && version===undefined) {const {bookingInput}=await import('../shared/bookings.js');const normalized=bookingInput.parse(raw); if(Object.entries(normalized).every(([k,v])=>JSON.stringify(existing[k as keyof Booking])===JSON.stringify(v))) return existing;throw new Error('This create request was already used. Reload bookings.');}
  if(version!==undefined && (!existing || existing.version!==version)) throw new Error('Record changed. Reload the booking before saving.');
@@ -40,9 +40,9 @@ export async function saveBooking(raw:unknown,id:string,version?:number){return 
  const input=validateBooking(raw,existing,occupied);
  const b:Booking={...input,id,version:(existing?.version??0)+1,paid:existing?.paid??0,createdAt:existing?.createdAt??new Date().toISOString(),reference:existing?.reference??`SM-${new Date().getUTCFullYear()}-${id.slice(0,8).toUpperCase()}`};
  await c.query('INSERT INTO shafi_bookings(id,body,version) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET body=EXCLUDED.body,version=EXCLUDED.version',[id,JSON.stringify(b),b.version]);
- await audit(c,b,existing?`Booking updated: ${existing.status} → ${b.status}`:'Booking created');return b;
+ await audit(c,b,existing?`Booking updated: ${existing.status} → ${b.status}`:'Booking created',actor);return b;
 });}
-export async function recordPayment(id:string,raw:unknown){return write(async c=>{
+export async function recordPayment(id:string,raw:unknown,actor='Shared administrator'){return write(async c=>{
  const b=(await c.query('SELECT body FROM shafi_bookings WHERE id=$1',[id])).rows[0]?.body as Booking|undefined;
  if(!b) throw new Error('Booking not found.');
  const input=transactionInput.parse(raw);
@@ -53,5 +53,5 @@ export async function recordPayment(id:string,raw:unknown){return write(async c=
  b.paid+=p.kind==='Refund'?-p.amount:p.amount;b.version++;
  await c.query('INSERT INTO shafi_booking_payments(id,booking,body) VALUES($1,$2,$3)',[p.key,id,JSON.stringify(payment)]);
  await c.query('UPDATE shafi_bookings SET body=$2,version=$3 WHERE id=$1',[id,JSON.stringify(b),b.version]);
- await audit(c,b,`${p.kind}: PKR ${p.amount} (${p.method})${p.reason?` — ${p.reason}`:''}`);return b;
+ await audit(c,b,`${p.kind}: PKR ${p.amount} (${p.method})${p.reason?` — ${p.reason}`:''}`,actor);return b;
 });}

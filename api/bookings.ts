@@ -1,16 +1,18 @@
 import { z } from 'zod';
 import { header, requestUrl, sameOrigin, sessionValid, type RuntimeRequest } from '../server/auth.js';
 import { listBookings, bookingHistory, saveBooking, recordPayment } from '../server/postgres-bookings.js';
-import { listExpenses, saveExpense, voidExpense } from '../server/expenses.js';
+import { listExpenses, saveExpense, voidExpense, reviewExpense } from '../server/expenses.js';
+import { actorFor, hallAccess, requireRole, AccessError } from '../server/staff-auth.js';
 const send=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function handleBookings(request:RuntimeRequest):Promise<Response>{
  try{
-  if(!sessionValid(request))return send({error:'Sign in to access bookings.'},401);
+  const actor=await actorFor(request);
+  if(!actor)return send({error:'Sign in to access bookings.'},401);
   if(!process.env.DATABASE_URL)return send({error:'Private booking database setup is still in progress.'},503);
   const url=requestUrl(request);
   const expenses=url.searchParams.get('resource')==='expenses';
-  if(request.method==='GET'&&expenses)return send(await listExpenses());
-  if(request.method==='GET'){const id=url.searchParams.get('id');return send(id?await bookingHistory(z.string().uuid().parse(id)):await listBookings());}
+  if(request.method==='GET'&&expenses)return send(await listExpenses(actor));
+  if(request.method==='GET'){const id=url.searchParams.get('id');const available=(await listBookings()).filter(b=>hallAccess(actor,b.hall));if(id&&!available.some(b=>b.id===id))throw new AccessError('Booking unavailable for your hall.');return send(id?await bookingHistory(z.string().uuid().parse(id)):available);}
   if(request.method!=='POST')return send({error:'Method not allowed.'},405);
   if(!sameOrigin(request))return send({error:'Request must come from this website.'},403);
   if(Number(header(request,'content-length')||0)>32000)return send({error:'Request too large.'},413);
@@ -21,19 +23,23 @@ export async function handleBookings(request:RuntimeRequest):Promise<Response>{
   if(Buffer.byteLength(text)>32000)return send({error:'Request too large.'},413);
   const data=JSON.parse(text);const id=z.string().uuid().parse(data.id);
   if(expenses){
-    if(data.action==='save')return send(await saveExpense(id,data.entry));
-    if(data.action==='void')return send(await voidExpense(id,data.reason));
+    if(data.action==='save')return send(await saveExpense(id,data.entry,actor));
+    if(data.action==='void')return send(await voidExpense(id,data.reason,actor));
+    if(data.action==='review')return send(await reviewExpense(actor,id,data.entry));
     return send({error:'Unknown ledger action.'},400);
   }
-  if(data.action==='payment')return send(await recordPayment(id,data.payment));
+  const existing=(await listBookings()).find(b=>b.id===id);
+  if(existing&&!hallAccess(actor,existing.hall))throw new AccessError('Booking unavailable for your hall.');
+  if(data.action==='payment'){requireRole(actor,['Director','GM','Accountant']);return send(await recordPayment(id,data.payment,actor.name));}
   if(data.action!=='save')return send({error:'Unknown booking action.'},400);
   const version=data.version===undefined?undefined:z.number().int().positive().parse(data.version);
-  return send(await saveBooking(data.booking,id,version));
+  requireRole(actor,['Director','GM']);
+  return send(await saveBooking(data.booking,id,version,actor.name));
  }catch(e){if(e instanceof z.ZodError)return send({error:e.issues.map(i=>`${i.path.join('.')}: ${i.message}`).join('; ')},400);
   if(e instanceof SyntaxError)return send({error:'Invalid request.'},400);
   const err=e as Error & {code?:string};
   if(err.code){console.error('Booking storage failure',err.code);return send({error:'Booking storage is temporarily unavailable. Your form is still here; retry shortly.'},503);}
-  return send({error:err.message || 'Unable to process booking.'},409);
+  return send({error:err.message || 'Unable to process booking.'},e instanceof AccessError?403:409);
  }
 }
 export default async function handler(req:RuntimeRequest,res:{statusCode:number;setHeader:(k:string,v:string)=>void;end:(b:Uint8Array)=>void}){const response=await handleBookings(req);res.statusCode=response.status;response.headers.forEach((v,k)=>res.setHeader(k,v));res.end(new Uint8Array(await response.arrayBuffer()));}

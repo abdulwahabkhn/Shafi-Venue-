@@ -13,6 +13,7 @@ export const ledgerInput = z.object({
   description: z.string().trim().min(3).max(2000),
   bookingId: z.string().uuid().nullable().default(null),
   issueId: z.string().uuid().nullable().default(null),
+  recipientId: z.string().uuid().nullable().default(null),
 }).superRefine((v,ctx)=>{
   const fail=(message:string)=>ctx.addIssue({code:'custom',message});
   if(v.kind==='Cash issue' && !v.issuer) fail('Enter who issued the cash.');
@@ -22,7 +23,7 @@ export const ledgerInput = z.object({
   if(v.method==='Bank transfer'&&!v.reference) fail('Enter the bank transfer reference.');
 });
 export type LedgerInput = z.infer<typeof ledgerInput>;
-export type LedgerEntry = LedgerInput & {id:string;created:string;actor:string;voidReason:string|null;voidedAt:string|null};
+export type LedgerEntry = LedgerInput & {id:string;created:string;actor:string;voidReason:string|null;voidedAt:string|null;ownerId?:string;reviewStatus?:'Submitted'|'Verified'|'Approved'|'Rejected';reviews?:{status:string;note:string;actor:string;date:string}[]};
 export function issueRemaining(issue:LedgerEntry,entries:LedgerEntry[]) {
   return issue.amount-entries.filter(e=>e.issueId===issue.id&&!e.voidedAt).reduce((sum,e)=>sum+e.amount,0);
 }
