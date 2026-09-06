@@ -1,5 +1,15 @@
 # Shafi operations development
 
+## Inventory increment — 6 September 2026
+
+Implemented the next unfinished phase as a physical-stock foundation: catalogue with unique SKU/home location, Director-only opening counts, purchase receipts with supplier references, booking/employee-linked issues, partial usable returns, damage and loss incidents, repair/recovery and Director-only write-offs. Balances are derived from immutable movement records; concurrent issues and source settlements are serialized. Hall managers cannot issue against another hall's booking or view its movement history. Accountant inventory access is read-only. No sample stock quantities are seeded.
+
+The Inventory navigation now opens saved stock records instead of the demonstration. This is not yet the entire inventory phase: future reservations, rental supplier agreements/returns, inter-hall transfers, catalogue editing/count corrections and a purchase-bill linking interface are still pending. Purchase payments and bill attachments remain in Cash & expenses. No automatic customer damage charge or employee deduction occurs.
+
+Validation: 23 inventory checks passed, plus all 73 existing booking/employee/expense checks. The production build passes. Browser QA against an isolated schema created an item and recorded 100 opening units successfully; no test stock was added to the production records.
+
+Remaining development order: (1) complete inventory reservations/rentals/transfers, (2) cash acknowledgement and daily reconciliation, (3) enquiry intake and supplier balances, (4) history/report refinements plus backup/restore drill, (5) desktop/offline packaging after confirming device and offline rules. Existing employee, booking and expense modules are retained. Automated inventory checks: `node scripts/test-inventory-cloud.mjs` in a disposable isolated schema; migration included in `scripts/migrate-bookings.mjs`.
+
 ## Employee and expense milestone — 6 September 2026
 
 This section supersedes earlier pending-module statements below. Implemented: named Director, GM, Accountant and hall-scoped manager sessions; Director account administration and session revocation; employee sectors, recruitment/exit records, attendance and manual salary/wage/advance records; cash recipient account linkage; private bill uploads (JPG/PNG/PDF, 2 MB each, five per entry); accountant verification, Director/GM approval and Director-only voids; daily cash/bank activity report with print/save-PDF.

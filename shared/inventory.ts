@@ -1,0 +1,12 @@
+import { z } from 'zod';
+import { dateInput } from './staff.js';
+export const inventoryCategories=['Furniture','Crockery','Dining','Decoration','Electrical','Other'] as const;
+export const locations=['Store','Hall 1','Hall 2'] as const;
+export const itemInput=z.object({sku:z.string().trim().toUpperCase().regex(/^[A-Z0-9-]{2,40}$/),name:z.string().trim().min(2).max(160),category:z.enum(inventoryCategories),location:z.enum(locations),unit:z.string().trim().min(1).max(30),minimum:z.number().int().min(0).max(1000000),notes:z.string().trim().max(1000).default('')});
+export type StockItem=z.infer<typeof itemInput>&{id:string;created:string};
+export const movementKinds=['Opening','Purchase','Issue','Return','Damage','Loss','Repair','Recover','Write-off'] as const;
+export const movementInput=z.object({itemId:z.string().uuid(),kind:z.enum(movementKinds),quantity:z.number().int().positive().max(1000000),date:dateInput,bookingId:z.string().uuid().nullable().default(null),employeeId:z.string().uuid().nullable().default(null),sourceId:z.string().uuid().nullable().default(null),expenseId:z.string().uuid().nullable().default(null),reference:z.string().trim().max(160).default(''),note:z.string().trim().min(3).max(1000)});
+export type StockMovement=z.infer<typeof movementInput>&{id:string;actor:string;hall:string|null;created:string;itemName:string;employeeName:string;bookingReference:string};
+export function stockTotals(moves:StockMovement[]){return moves.reduce((s,m)=>{if(['Opening','Purchase','Return','Repair','Recover'].includes(m.kind))s.available+=m.quantity;if(m.kind==='Issue')s.available-=m.quantity;if(m.kind==='Damage')s.damaged+=m.quantity;if(m.kind==='Loss')s.missing+=m.quantity;if(m.kind==='Repair')s.damaged-=m.quantity;if(m.kind==='Recover')s.missing-=m.quantity;if(m.kind==='Write-off'){const source=moves.find(v=>v.id===m.sourceId);if(source?.kind==='Damage')s.damaged-=m.quantity;if(source?.kind==='Loss')s.missing-=m.quantity;s.writtenOff+=m.quantity;}if(m.kind==='Issue')s.issued+=m.quantity;if(['Return','Damage','Loss'].includes(m.kind))s.issued-=m.quantity;return s;},{available:0,issued:0,damaged:0,missing:0,writtenOff:0});}
+export function unsettled(source:StockMovement,moves:StockMovement[]){return source.quantity-moves.filter(m=>m.sourceId===source.id).reduce((s,m)=>s+m.quantity,0);}
+export type InventoryData={items:(StockItem&ReturnType<typeof stockTotals>)[];movements:StockMovement[]};

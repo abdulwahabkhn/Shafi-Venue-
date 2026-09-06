@@ -5,6 +5,7 @@ import { employeeData, saveEmployee, saveAttendance, recordEmployeePayment, void
 import { body, json, failure, deliver, type NodeResponse } from '../server/http.js';
 import { expenseFiles, saveFile, downloadFile } from '../server/attachments.js';
 import { dailyReport } from '../server/reports.js';
+import { inventoryData,saveStockItem,moveStock } from '../server/inventory.js';
 
 export async function handleStaff(request:RuntimeRequest){try{
  const resource=requestUrl(request).searchParams.get('resource')||'session';
@@ -15,6 +16,7 @@ export async function handleStaff(request:RuntimeRequest){try{
   if(resource==='session')return json(actor);
   if(resource==='users')return json(await users(actor));
   if(resource==='employees')return json(await employeeData(actor));
+  if(resource==='inventory')return json(await inventoryData(actor));
   if(resource==='report')return json(await dailyReport(actor,requestUrl(request).searchParams.get('date')));
   if(resource==='files')return json(await expenseFiles(actor,z.string().uuid().parse(requestUrl(request).searchParams.get('expense'))));
   if(resource==='download')return downloadFile(actor,z.string().uuid().parse(requestUrl(request).searchParams.get('id')));
@@ -25,6 +27,8 @@ export async function handleStaff(request:RuntimeRequest){try{
  const version=data.version===undefined?undefined:z.number().int().positive().parse(data.version);
  if(resource==='users')return json(await saveUser(actor,id,data.entry));
  if(resource==='employees')return json(await saveEmployee(actor,id,data.entry,version));
+ if(resource==='stock-item')return json(await saveStockItem(actor,id,data.entry));
+ if(resource==='stock-movement')return json(await moveStock(actor,id,data.entry));
  if(resource==='attendance')return json(await saveAttendance(actor,id,data.entry,version));
  if(resource==='payment')return json(await recordEmployeePayment(actor,id,data.entry));
  if(resource==='void-payment')return json(await voidEmployeePayment(actor,id,data.reason));
