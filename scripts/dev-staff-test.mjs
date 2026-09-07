@@ -10,7 +10,8 @@ const url=new URL(process.env.DATABASE_URL_UNPOOLED||process.env.POSTGRES_URL_NO
 process.env.CMS_ADMIN_PASSWORD='ui-test-only-password';process.env.CMS_SESSION_SECRET=randomUUID()+randomUUID();delete process.env.BLOB_READ_WRITE_TOKEN;
 const loader=await createServer({configFile:false,server:{middlewareMode:true,hmr:false},optimizeDeps:{noDiscovery:true,include:[]}});const store=await loader.ssrLoadModule('/server/postgres-bookings.ts');await store.migrateBookings();
 for(const [file,key] of [['staff-auth','staffSchema'],['expenses','expenseSchema'],['employees','employeeSchema'],['attachments','attachmentSchema'],['inventory','inventorySchema'],['rentals','rentalSchema'],['cash-reconciliation','cashReconciliationSchema']]){const module=await loader.ssrLoadModule('/server/'+file+'.ts');await store.bookingPool().query(module[key]);}
-const auth=await loader.ssrLoadModule('/server/staff-auth.ts');await auth.saveUser(auth.owner,randomUUID(),{name:'QA Director',username:'qa-director',role:'Director',password:'ui-test-only-password'});
+const auth=await loader.ssrLoadModule('/server/staff-auth.ts');const bootstrapGM={id:randomUUID(),name:'QA GM',role:'GM',hall:null};
+for(const role of ['GM','Director','Accountant'])await auth.saveUser(bootstrapGM,role==='GM'?bootstrapGM.id:randomUUID(),{name:'QA '+role,username:'qa-'+role.toLowerCase(),role,password:'ui-test-only-password'});
 if(process.argv.includes('--fixtures')){
  const inventory=await loader.ssrLoadModule('/server/inventory.ts'),expenses=await loader.ssrLoadModule('/server/expenses.ts'),{pkToday}=await loader.ssrLoadModule('/shared/staff.ts');const day=pkToday(),source=randomUUID();
  await inventory.saveStockItem(auth.owner,source,{sku:'QA-PLATE-STORE',name:'QA white plate',category:'Crockery',location:'Store',unit:'pieces',minimum:0});

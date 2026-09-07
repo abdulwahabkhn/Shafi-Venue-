@@ -1,3 +1,4 @@
+import { expenseSheet,addExpenseRow,removeExpenseRow,inventoryRegister,addInventoryItem,inventoryAction,monthlySummary } from '../server/registers.js';
 import { z } from 'zod';
 import { requestUrl, type RuntimeRequest } from '../server/auth.js';
 import { actorFor, staffLogin, staffLogout, users, saveUser } from '../server/staff-auth.js';
@@ -14,7 +15,12 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(request.method==='POST'&&resource==='login'){const result=await staffLogin(request,await body(request));const response=json(result.actor);response.headers.set('Set-Cookie',result.cookie);return response;}
  if(request.method==='POST'&&resource==='logout'){await body(request);const response=json({ok:true});response.headers.set('Set-Cookie',await staffLogout(request));return response;}
  const actor=await actorFor(request);if(!actor)return json({error:'Sign in to the staff portal.'},401);
+ if(actor.role==='Accountant'&&!['session','expense-sheet'].includes(resource))return json({error:'Accountant access is limited to the expense sheet.'},403);
+ if(request.method!=='GET'&&actor.role==='Director')return json({error:'Director access is monitoring only.'},403);
  if(request.method==='GET'){
+  if(resource==='expense-sheet')return json(await expenseSheet(actor,requestUrl(request).searchParams.get('date')));
+  if(resource==='inventory-register')return json(await inventoryRegister(actor));
+  if(resource==='monthly-summary')return json(await monthlySummary(actor,requestUrl(request).searchParams.get('month')));
   if(resource==='session')return json(actor);
   if(resource==='users')return json(await users(actor));
   if(resource==='employees')return json(await employeeData(actor));
@@ -27,6 +33,8 @@ export async function handleStaff(request:RuntimeRequest){try{
  }
  if(request.method!=='POST')return json({error:'Unknown operation.'},400);
  const data=await body(request,resource==='files'?3000000:32000);const id=z.string().uuid().parse(data.id);
+ if(resource==='expense-sheet')return json(data.action==='remove'?await removeExpenseRow(actor,id,data.reason):await addExpenseRow(actor,id,data.entry));
+ if(resource==='inventory-register')return json(data.action==='add'?await addInventoryItem(actor,id,data.entry):await inventoryAction(actor,id,data.entry));
  if(resource==='files')return json(await saveFile(actor,id,data.entry));
  const version=data.version===undefined?undefined:z.number().int().positive().parse(data.version);
  if(resource==='users')return json(await saveUser(actor,id,data.entry));

@@ -25,7 +25,7 @@ export async function employeeData(actor:Actor):Promise<EmployeeData>{
  return {employees:employees.rows.map(r=>actor.role==='Hall manager'?{...r.body,salary:0,phone:'',notes:'',exitReason:''}:r.body),attendance:attendance.rows.map(r=>r.body),payments:payments.rows.map(r=>r.body),audit:audits.rows};
 }
 export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:number){
- requireRole(actor,['Director','GM']);const input=employeeInput.parse(raw);
+ requireRole(actor,['GM']);const input=employeeInput.parse(raw);
  return transaction(async c=>{
  const existing=(await c.query('SELECT body FROM shafi_employees WHERE id=$1',[id])).rows[0]?.body as Employee|undefined;
  if(existing&&version===undefined){if(Object.entries(input).every(([k,v])=>existing[k as keyof Employee]===v))return existing;throw new Error('This employee already exists. Reload before editing.');}
@@ -38,7 +38,7 @@ export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:nu
  });
 }
 export async function saveAttendance(actor:Actor,id:string,raw:unknown,version?:number){
- const input=attendanceInput.parse(raw);
+ requireRole(actor,['GM']);const input=attendanceInput.parse(raw);
  return transaction(async c=>{
  const employee=(await c.query('SELECT body FROM shafi_employees WHERE id=$1',[input.employeeId])).rows[0]?.body as Employee|undefined;
  if(!employee||!hallAccess(actor,employee.hall))throw new AccessError('Employee unavailable for your hall.');
@@ -52,7 +52,7 @@ export async function saveAttendance(actor:Actor,id:string,raw:unknown,version?:
  });
 }
 export async function recordEmployeePayment(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['Director','GM','Accountant']);const input=employeePaymentInput.parse(raw);
+ requireRole(actor,['GM']);const input=employeePaymentInput.parse(raw);
  return transaction(async c=>{
  const existing=(await c.query('SELECT body FROM shafi_employee_payments WHERE id=$1',[id])).rows[0]?.body;
  if(existing){if(Object.entries(input).some(([k,v])=>existing[k]!==v))throw new Error('Payment retry differs from the saved payment.');return existing;}
@@ -64,6 +64,11 @@ export async function recordEmployeePayment(actor:Actor,id:string,raw:unknown){
   if(employee.employment!=='Permanent')throw new Error('Use Rental wage for rental or daily-wage staff.');
   if(input.period!<employee.joined.slice(0,7)||employee.exited&&input.period!>employee.exited.slice(0,7)||input.period!>pkToday().slice(0,7))throw new Error('Salary month must fall within employment and cannot be in the future.');
   if(history.some(p=>p.kind==='Salary'&&p.period===input.period))throw new Error('Salary is already marked paid for this employee and month.');
+  if(input.deductionRate>0&&input.deductionDays>0){
+   const leaves=Number((await c.query("SELECT COUNT(*) n FROM shafi_attendance WHERE employee=$1 AND to_char(day,'YYYY-MM')=$2 AND body->>'status'='Leave'",[employee.id,input.period])).rows[0].n);
+   if(input.deductionDays>Math.max(0,leaves-4))throw new Error('Deducted days cannot exceed leaves above the four-day allowance.');
+   if(input.amount!==employee.salary-input.deductionRate*input.deductionDays)throw new Error('Confirm the paid amount after applying the chosen leave deduction.');
+  }
   if(input.amount!==employee.salary&&!input.note)throw new Error('Add a note explaining the paid amount if it differs from the agreed salary.');
  }
  if(input.kind==='Advance'&&employee.status!=='Active')throw new Error('Advances can only be recorded for active employees.');
@@ -77,7 +82,7 @@ export async function recordEmployeePayment(actor:Actor,id:string,raw:unknown){
  });
 }
 export async function voidEmployeePayment(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['Director']);const reason=z.string().trim().min(3).max(1000).parse(raw);
+ requireRole(actor,['GM']);const reason=z.string().trim().min(3).max(1000).parse(raw);
  return transaction(async c=>{const payment=(await c.query('SELECT body FROM shafi_employee_payments WHERE id=$1',[id])).rows[0]?.body as EmployeePayment|undefined;if(!payment)throw new Error('Payment not found.');if(payment.voidedAt)return payment;
  if(payment.kind==='Advance'){const other=(await c.query('SELECT body FROM shafi_employee_payments WHERE employee=$1 AND id<>$2',[payment.employeeId,id])).rows.map(r=>r.body as EmployeePayment).filter(p=>!p.voidedAt);if(other.reduce((s,p)=>s+(p.kind==='Advance'?p.amount:p.kind==='Advance repayment'?-p.amount:0),0)<0)throw new Error('Reverse related advance repayments before voiding this advance.');}
  payment.voidedAt=new Date().toISOString();payment.voidReason=reason;await c.query('UPDATE shafi_employee_payments SET body=$2 WHERE id=$1',[id,JSON.stringify(payment)]);await audit(c,actor,payment.employeeId,'Payment voided',payment);return payment;});

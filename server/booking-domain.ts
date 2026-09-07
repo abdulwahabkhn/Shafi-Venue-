@@ -2,6 +2,7 @@ import { bookingInput, transactionInput, holdsSlot, overlap, type Booking } from
 
 export function validateBooking(raw:unknown, previous:Booking|undefined, occupied:Booking[], now=Date.now()) {
   const input=bookingInput.parse(raw);
+  if(!['Hold','Confirmed','Completed'].includes(input.status))throw new Error('Choose Hold, Confirmed or Completed. Legacy records remain in history.');
   if (previous?.status==='Completed' || previous?.status==='Cancelled') throw new Error('Closed bookings cannot be edited. Payment refunds remain available.');
   if (input.total < (previous?.paid ?? 0)) throw new Error('Total cannot be lower than net payments. Record an agreed refund first.');
   if (input.status==='Hold' && Date.parse(input.holdUntil!)<=now) throw new Error('Hold expiry must be in the future.');

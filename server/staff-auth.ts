@@ -20,7 +20,7 @@ const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 function token(request:RuntimeRequest){return header(request,'cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith('shafi_staff='))?.slice(12);}
 export async function actorFor(request:RuntimeRequest):Promise<Actor|null>{
  const value=token(request);
- if(value){if(!/^[a-f0-9]{64}$/.test(value))return null;const r=await bookingPool().query('SELECT u.id,u.name,u.role,u.hall FROM shafi_sessions s JOIN shafi_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires>now() AND u.active=true',[hash(value)]);return r.rows[0]||null;}
+ if(value){if(!/^[a-f0-9]{64}$/.test(value))return null;const r=await bookingPool().query('SELECT u.id,u.name,u.role,u.hall FROM shafi_sessions s JOIN shafi_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires>now() AND u.active=true',[hash(value)]);return r.rows[0]?.role==='Hall manager'?null:r.rows[0]||null;}
  return sessionValid(request)?owner:null;
 }
 export async function passwordHash(password:string){const salt=randomBytes(16).toString('hex');const derived=await scrypt(password,salt,64,{N:32768,r:8,p:3,maxmem:64*1024*1024} as never) as Buffer;return salt+':'+derived.toString('hex');}
@@ -35,7 +35,7 @@ export async function staffLogin(request:RuntimeRequest,raw:unknown){
  const r=await bookingPool().query('SELECT * FROM shafi_users WHERE username=$1',[input.username]);const u=r.rows[0];
  const fallback='00000000000000000000000000000000:'+ '00'.repeat(64);
  const valid=await matches(input.password,u?.password_hash||fallback);
- if(!u?.active||!valid)throw new AccessError('Username or password is incorrect.');
+ if(!u?.active||u.role==='Hall manager'||!valid)throw new AccessError('Username or password is incorrect.');
  const value=randomBytes(32).toString('hex');await bookingPool().query("INSERT INTO shafi_sessions(token_hash,user_id,expires) VALUES($1,$2,now()+interval '8 hours')",[hash(value),u.id]);
  return {actor:{id:u.id,name:u.name,role:u.role,hall:u.hall} as Actor,cookie:staffCookie(request,value)};
 }
@@ -43,14 +43,14 @@ export function staffCookie(request:RuntimeRequest,value=''){return `shafi_staff
 export async function staffLogout(request:RuntimeRequest){const value=token(request);if(value)await bookingPool().query('DELETE FROM shafi_sessions WHERE token_hash=$1',[hash(value)]);return staffCookie(request);}
 export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);return (await bookingPool().query('SELECT id,name,username,role,hall,active FROM shafi_users ORDER BY name')).rows;}
 export async function saveUser(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['Director','GM']);const input=userInput.parse(raw);
- if(actor.role==='GM'&&(input.role!=='Hall manager'||!input.active))throw new AccessError('GM can only add active Hall manager accounts.');
+ requireRole(actor,['GM']);const input=userInput.parse(raw);
+ if(input.role==='Hall manager')throw new AccessError('Hall Manager portals are no longer supported.');
  if(id===actor.id&&!input.active)throw new AccessError('You cannot disable your current account.');
- if(id===actor.id&&input.role!=='Director')throw new AccessError('You cannot remove your own Director role.');
+ if(id===actor.id&&input.role!=='GM')throw new AccessError('You cannot remove your own GM role.');
  const password=input.password?await passwordHash(input.password):null;
  const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
- if(actor.role==='GM'&&existing)throw new AccessError('Existing account changes require Director access.');
- await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash)',[id,input.username,input.name,input.role,input.role==='Hall manager'?input.hall:null,input.active,password||existing?.password_hash]);
+
+ await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash)',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash]);
  await c.query('DELETE FROM shafi_sessions WHERE user_id=$1',[id]);
  await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active})]);await c.query('COMMIT');
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}

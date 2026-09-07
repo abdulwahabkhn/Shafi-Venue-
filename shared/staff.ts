@@ -30,6 +30,8 @@ export type Employee = z.infer<typeof employeeInput> & { id: string; version: nu
 export const attendanceInput = z.object({ employeeId: z.string().uuid(), date: dateInput, status: z.enum(['Present', 'Absent', 'Leave', 'Half day']), note: z.string().trim().max(500).default(''), bookingId: z.string().uuid().nullable().default(null) });
 export type Attendance = z.infer<typeof attendanceInput> & { id: string; actor: string; version: number };
 export const employeePaymentInput = z.object({
+  deductionRate: z.number().int().min(0).max(100000000).default(0),
+  deductionDays: z.number().int().min(0).max(31).default(0),
   employeeId: z.string().uuid(), kind: z.enum(['Salary', 'Advance', 'Advance repayment', 'Rental wage']),
   amount: z.number().int().positive().max(100000000), date: dateInput,
   period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
@@ -37,6 +39,7 @@ export const employeePaymentInput = z.object({
   note: z.string().trim().max(1000).default(''), bookingId: z.string().uuid().nullable().default(null),
 }).superRefine((v,ctx)=>{
   if(v.kind==='Salary'&&!v.period)ctx.addIssue({code:'custom',message:'Select the salary month.'});
+  if(v.kind!=='Salary'&&(v.deductionRate||v.deductionDays))ctx.addIssue({code:'custom',message:'Leave deductions belong to salary records only.'});
   if(v.method==='Bank transfer'&&!v.reference)ctx.addIssue({code:'custom',message:'Enter a bank transfer reference.'});
 });
 export type EmployeePayment = z.infer<typeof employeePaymentInput> & {id:string; employeeName:string; actor:string; created:string; voidedAt:string|null; voidReason:string|null; agreedSalary:number};

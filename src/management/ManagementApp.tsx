@@ -1,16 +1,17 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { ArrowRight, CalendarDays, Check, ClipboardList, FileBarChart, LayoutDashboard, Menu, Package, ReceiptText, Settings2, ShieldCheck, Sparkles, Users, Warehouse, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard, Menu, ReceiptText, Settings2, ShieldCheck, Sparkles, Users, Warehouse, X } from 'lucide-react';
 import './management.css';
 import './bookings.css';
 import { StaffAccess, AccountsWorkspace, useActor, logoutStaff } from './StaffAccess';
 
 const LiveOperations=lazy(()=>import('./LiveOperations'));
-const ExpensesWorkspace=lazy(()=>import('./ExpensesWorkspace'));
+const ExpensesWorkspace=lazy(()=>import('./DailyExpenseSheet'));
+const MonthlyDashboard=lazy(()=>import('./MonthlyDashboard'));
 const EmployeesWorkspace=lazy(()=>import('./EmployeesWorkspace'));
 const ReportsWorkspace=lazy(()=>import('./ReportsWorkspace'));
-const InventoryWorkspace=lazy(()=>import('./InventoryWorkspace'));
-const RentalsWorkspace=lazy(()=>import('./RentalsWorkspace'));
-const CashReconciliation=lazy(()=>import('./CashReconciliation'));
+const InventoryWorkspace=lazy(()=>import('./InventoryRegister'));
+
+
 
 class WorkspaceBoundary extends Component<{children:ReactNode},{failed:boolean}>{
  state={failed:false};
@@ -24,9 +25,9 @@ const navItems:{id:ViewId;label:string;icon:typeof LayoutDashboard}[]=[
  {id:'bookings',label:'Bookings',icon:ClipboardList},
  {id:'calendar',label:'Calendar',icon:CalendarDays},
  {id:'inventory',label:'Inventory',icon:Warehouse},
- {id:'rentals',label:'Supplier rentals',icon:Package},
- {id:'expenses',label:'Cash & expenses',icon:ReceiptText},
- {id:'reconciliation',label:'Cash reconciliation',icon:Check},
+
+ {id:'expenses',label:'Expense sheet',icon:ReceiptText},
+
  {id:'employees',label:'Employees',icon:Users},
  {id:'reports',label:'Reports',icon:FileBarChart},
 ];
@@ -41,11 +42,11 @@ function WebsiteView(){
 export default function ManagementApp(){return <StaffAccess><ManagementShell/></StaffAccess>;}
 function ManagementShell(){
  const actor=useActor();
- const [view,setView]=useState<ViewId>('overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
+ const [view,setView]=useState<ViewId>(actor.role==='Accountant'?'expenses':'overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
  useEffect(()=>{document.title='Venue operations | Shafi Complex & Marquee';},[]);
  useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),5000);return()=>window.clearTimeout(timer);},[toast]);
  useEffect(()=>{if(!mobileNav)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMobileNav(false);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[mobileNav]);
- const activeLabel=navItems.find(item=>item.id===view)?.label||(view==='accounts'?(actor.role==='GM'?'Hall managers':'Staff accounts'):'Website manager');
+ const activeLabel=navItems.find(item=>item.id===view)?.label||(view==='accounts'?'Staff accounts':'Website manager');
  const canNavigate=()=>window.dispatchEvent(new Event('operations:navigate',{cancelable:true}));
  function navigate(next:ViewId){if(next!==view&&!canNavigate())return;setView(next);setMobileNav(false);window.scrollTo({top:0,behavior:'instant'});}
  function signOut(){if(canNavigate())void logoutStaff().catch(e=>setToast(e.message));}
@@ -58,11 +59,11 @@ function ManagementShell(){
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
-   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>actor.role!=='Hall manager'||!['reports','reconciliation'].includes(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
+   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>actor.role!=='Accountant'||item.id==='expenses').map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
    <nav aria-label="Connected tools"><p>Connected tools</p>
-    {actor.role==='Director'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}
-    {actor.role==='GM'&&<button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Hall managers</span></button>}
+    {actor.role==='GM'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}
+
     <button onClick={signOut}><ShieldCheck aria-hidden="true"/><span>Sign out</span></button>
    </nav>
    <div className="ops-sidebar-footer"><div className="ops-sidebar-footer-icon"><Warehouse aria-hidden="true"/></div><strong>Keep the details close.</strong><p>One source of truth for every event.</p><a href="/" onClick={e=>{if(!canNavigate())e.preventDefault();}}>Back to public website <ArrowRight aria-hidden="true"/></a></div>
@@ -71,11 +72,11 @@ function ManagementShell(){
   <main className="ops-main" id="operations-main" tabIndex={-1}>
    <div className="ops-breadcrumb"><span>Shafi Complex & Marquee</span><ArrowRight aria-hidden="true"/><strong>{activeLabel}</strong></div>
    <WorkspaceBoundary key={view}><Suspense fallback={<p className="booking-workspace" role="status">Opening {activeLabel.toLowerCase()}…</p>}>
-    {view==='overview'&&<LiveOperations view="overview"/>}{view==='bookings'&&<LiveOperations view="bookings"/>}{view==='calendar'&&<LiveOperations view="calendar"/>}
-    {view==='inventory'&&<InventoryWorkspace/>}{view==='rentals'&&<RentalsWorkspace/>}{view==='expenses'&&<ExpensesWorkspace/>}
-    {view==='reconciliation'&&actor.role!=='Hall manager'&&<div className="booking-workspace"><h1>Cash reconciliation</h1><CashReconciliation/></div>}
-    {view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&actor.role!=='Hall manager'&&<ReportsWorkspace/>}
-    {view==='accounts'&&['Director','GM'].includes(actor.role)&&<AccountsWorkspace/>}{view==='website'&&actor.role==='Director'&&<WebsiteView/>}
+    {view==='overview'&&<MonthlyDashboard/>}{view==='bookings'&&<LiveOperations view="bookings"/>}{view==='calendar'&&<LiveOperations view="calendar"/>}
+    {view==='inventory'&&<InventoryWorkspace/>}{view==='expenses'&&<ExpensesWorkspace/>}
+
+    {view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&actor.role!=='Accountant'&&<ReportsWorkspace/>}
+    {view==='accounts'&&actor.role==='GM'&&<AccountsWorkspace/>}{view==='website'&&actor.role==='GM'&&<WebsiteView/>}
    </Suspense></WorkspaceBoundary>
   </main>
   {toast&&<div className="ops-toast" role="status"><span>{toast}</span><button aria-label="Dismiss notification" onClick={()=>setToast('')}><X aria-hidden="true"/></button></div>}
