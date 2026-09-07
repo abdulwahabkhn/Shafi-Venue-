@@ -43,10 +43,13 @@ export function staffCookie(request:RuntimeRequest,value=''){return `shafi_staff
 export async function staffLogout(request:RuntimeRequest){const value=token(request);if(value)await bookingPool().query('DELETE FROM shafi_sessions WHERE token_hash=$1',[hash(value)]);return staffCookie(request);}
 export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);return (await bookingPool().query('SELECT id,name,username,role,hall,active FROM shafi_users ORDER BY name')).rows;}
 export async function saveUser(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['Director']);const input=userInput.parse(raw);if(id===actor.id&&!input.active)throw new AccessError('You cannot disable your current account.');
+ requireRole(actor,['Director','GM']);const input=userInput.parse(raw);
+ if(actor.role==='GM'&&(input.role!=='Hall manager'||!input.active))throw new AccessError('GM can only add active Hall manager accounts.');
+ if(id===actor.id&&!input.active)throw new AccessError('You cannot disable your current account.');
  if(id===actor.id&&input.role!=='Director')throw new AccessError('You cannot remove your own Director role.');
  const password=input.password?await passwordHash(input.password):null;
  const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
+ if(actor.role==='GM'&&existing)throw new AccessError('Existing account changes require Director access.');
  await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash)',[id,input.username,input.name,input.role,input.role==='Hall manager'?input.hall:null,input.active,password||existing?.password_hash]);
  await c.query('DELETE FROM shafi_sessions WHERE user_id=$1',[id]);
  await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active})]);await c.query('COMMIT');

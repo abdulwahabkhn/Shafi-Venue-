@@ -45,7 +45,7 @@ function ManagementShell(){
  useEffect(()=>{document.title='Venue operations | Shafi Complex & Marquee';},[]);
  useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),5000);return()=>window.clearTimeout(timer);},[toast]);
  useEffect(()=>{if(!mobileNav)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMobileNav(false);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[mobileNav]);
- const activeLabel=navItems.find(item=>item.id===view)?.label||(view==='accounts'?'Staff accounts':'Website manager');
+ const activeLabel=navItems.find(item=>item.id===view)?.label||(view==='accounts'?(actor.role==='GM'?'Hall managers':'Staff accounts'):'Website manager');
  const canNavigate=()=>window.dispatchEvent(new Event('operations:navigate',{cancelable:true}));
  function navigate(next:ViewId){if(next!==view&&!canNavigate())return;setView(next);setMobileNav(false);window.scrollTo({top:0,behavior:'instant'});}
  function signOut(){if(canNavigate())void logoutStaff().catch(e=>setToast(e.message));}
@@ -62,6 +62,7 @@ function ManagementShell(){
    <div className="ops-sidebar-divider"/>
    <nav aria-label="Connected tools"><p>Connected tools</p>
     {actor.role==='Director'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}
+    {actor.role==='GM'&&<button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Hall managers</span></button>}
     <button onClick={signOut}><ShieldCheck aria-hidden="true"/><span>Sign out</span></button>
    </nav>
    <div className="ops-sidebar-footer"><div className="ops-sidebar-footer-icon"><Warehouse aria-hidden="true"/></div><strong>Keep the details close.</strong><p>One source of truth for every event.</p><a href="/" onClick={e=>{if(!canNavigate())e.preventDefault();}}>Back to public website <ArrowRight aria-hidden="true"/></a></div>
@@ -74,7 +75,7 @@ function ManagementShell(){
     {view==='inventory'&&<InventoryWorkspace/>}{view==='rentals'&&<RentalsWorkspace/>}{view==='expenses'&&<ExpensesWorkspace/>}
     {view==='reconciliation'&&actor.role!=='Hall manager'&&<div className="booking-workspace"><h1>Cash reconciliation</h1><CashReconciliation/></div>}
     {view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&actor.role!=='Hall manager'&&<ReportsWorkspace/>}
-    {view==='accounts'&&actor.role==='Director'&&<AccountsWorkspace/>}{view==='website'&&actor.role==='Director'&&<WebsiteView/>}
+    {view==='accounts'&&['Director','GM'].includes(actor.role)&&<AccountsWorkspace/>}{view==='website'&&actor.role==='Director'&&<WebsiteView/>}
    </Suspense></WorkspaceBoundary>
   </main>
   {toast&&<div className="ops-toast" role="status"><span>{toast}</span><button aria-label="Dismiss notification" onClick={()=>setToast('')}><X aria-hidden="true"/></button></div>}

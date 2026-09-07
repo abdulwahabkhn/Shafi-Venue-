@@ -18,7 +18,15 @@ try{
  const owner=auth.owner,password=randomUUID()+randomUUID(),gm={id:randomUUID(),name:'Test GM',role:'GM',hall:null},accountant={id:randomUUID(),name:'Test Accountant',role:'Accountant',hall:null},manager={id:randomUUID(),name:'Test Manager',role:'Hall manager',hall:'Hall 1'},other={...manager,id:randomUUID(),name:'Other Manager',hall:'Hall 2'};
  for(const actor of [gm,accountant,manager,other])await auth.saveUser(owner,actor.id,{...actor,username:actor.id,password});
  ok(!(JSON.stringify(await auth.users(owner))).includes('password'),'Account listing contains no password material');
- await deny(auth.saveUser(gm,randomUUID(),{...manager,username:'forbidden',password}),'Only Director creates accounts');
+ await deny(auth.saveUser(gm,randomUUID(),{...gm,username:'forbidden',password}),'GM cannot create GM accounts');
+ const addedManagerId=randomUUID();
+ await auth.saveUser(gm,addedManagerId,{...manager,username:'gm-created-manager',password});
+ ok((await auth.users(owner)).some(u=>u.id===addedManagerId&&u.role==='Hall manager'&&u.hall==='Hall 1'),'GM creates hall-scoped manager');
+ await deny(auth.saveUser(gm,addedManagerId,{...manager,username:'gm-created-manager',password}),'GM cannot overwrite existing accounts');
+ await deny(auth.saveUser(gm,owner.id,{...owner,username:'director',password}),'GM cannot create Director');
+ await deny(auth.saveUser(gm,randomUUID(),{...accountant,username:'accountant-denied',password}),'GM cannot create Accountant');
+ await deny(auth.saveUser(accountant,randomUUID(),{...manager,username:'accountant-create',password}),'Accountant cannot create manager');
+ await deny(auth.saveUser(gm,randomUUID(),{...manager,hall:null,username:'missing-hall',password}),'GM manager creation requires hall');
  const origin='https://shafi-venue.vercel.app',request=new Request(origin+'/api/staff');
  const login=await auth.staffLogin(request,{username:manager.id,password});const cookie=login.cookie.split(';')[0];
  ok(login.cookie.includes('HttpOnly')&&login.cookie.includes('Secure')&&login.cookie.includes('SameSite=Strict'),'Secure staff session cookie');
