@@ -3,6 +3,8 @@ import { AccessError, hallAccess, requireRole } from './staff-auth.js';
 import { pkToday, type Actor } from '../shared/staff.js';
 import { itemInput,movementInput,stockTotals,unsettled,type StockItem,type StockMovement,type InventoryData } from '../shared/inventory.js';
 import type { PoolClient } from 'pg';
+import { randomUUID } from 'node:crypto';
+import { transferInput } from '../shared/inventory.js';
 export const inventorySchema=`
 CREATE TABLE IF NOT EXISTS shafi_stock_items(id uuid PRIMARY KEY,sku text UNIQUE NOT NULL,body jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS shafi_stock_movements(id uuid PRIMARY KEY,item uuid NOT NULL REFERENCES shafi_stock_items(id),source uuid REFERENCES shafi_stock_movements(id),booking uuid REFERENCES shafi_bookings(id),employee uuid REFERENCES shafi_employees(id),expense uuid REFERENCES shafi_expenses(id),body jsonb NOT NULL);
@@ -16,6 +18,28 @@ export async function inventoryData(actor:Actor):Promise<InventoryData>{
  const c=await bookingPool().connect();try{await c.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');const items=(await c.query('SELECT body FROM shafi_stock_items ORDER BY sku')).rows.map(r=>r.body as StockItem).filter(i=>itemAccess(actor,i));const ids=items.map(i=>i.id);const moves=(await c.query('SELECT body FROM shafi_stock_movements WHERE item=ANY($1::uuid[]) ORDER BY body->>\'created\' DESC,id',[ids])).rows.map(r=>r.body as StockMovement);await c.query('COMMIT');return {items:items.map(item=>({...item,...stockTotals(moves.filter(m=>m.itemId===item.id))})),movements:moves.filter(m=>actor.role!=='Hall manager'||m.hall===actor.hall)};}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
 }
 export async function saveStockItem(actor:Actor,id:string,raw:unknown){requireRole(actor,['Director','GM']);const input=itemInput.parse(raw);return write(async c=>{const old=(await c.query('SELECT body FROM shafi_stock_items WHERE id=$1',[id])).rows[0]?.body;if(old){if(Object.entries(input).some(([k,v])=>old[k]!==v))throw Error('Item already exists. This retry has different details.');return old;}const item={...input,id,created:new Date().toISOString()};await c.query('INSERT INTO shafi_stock_items(id,sku,body) VALUES($1,$2,$3)',[id,input.sku,JSON.stringify(item)]);return item;});}
+export async function transferStock(actor:Actor,id:string,raw:unknown){
+ requireRole(actor,['Director','GM']);const input=transferInput.parse(raw);
+ return write(async c=>{
+  const previous=(await c.query('SELECT body FROM shafi_stock_movements WHERE id=$1',[id])).rows[0]?.body as StockMovement|undefined;
+  if(previous){
+   if(previous.kind!=='Transfer out'||previous.transferItemId!==input.destinationId||['itemId','quantity','date','reference','note'].some(k=>previous[k as keyof StockMovement]!==input[k as keyof typeof input]))throw Error('Retry differs from the saved transfer. Reload inventory.');
+   return previous;
+  }
+  if(input.date>pkToday())throw Error('Choose the actual transfer date, today or earlier.');
+  const items=(await c.query('SELECT body FROM shafi_stock_items WHERE id=ANY($1::uuid[])',[[input.itemId,input.destinationId]])).rows.map(r=>r.body as StockItem);
+  const from=items.find(i=>i.id===input.itemId),to=items.find(i=>i.id===input.destinationId);
+  if(!from||!to||from.location===to.location)throw Error('Choose item records at two different locations.');
+  if(from.name.trim().toLowerCase()!==to.name.trim().toLowerCase()||from.category!==to.category||from.unit.trim().toLowerCase()!==to.unit.trim().toLowerCase())throw Error('Destination must have the same item name, category and unit.');
+  const moves=(await c.query('SELECT body FROM shafi_stock_movements WHERE item=$1',[from.id])).rows.map(r=>r.body as StockMovement);
+  if(input.quantity>stockTotals(moves).available)throw Error('Transfer exceeds usable stock at the source location.');
+  const common={quantity:input.quantity,date:input.date,reference:input.reference,note:input.note,bookingId:null,employeeId:null,expenseId:null,employeeName:'',bookingReference:'',actor:`${actor.name} (${actor.role})`,created:new Date().toISOString()};
+  const out:StockMovement={...common,id,itemId:from.id,itemName:from.name,kind:'Transfer out',sourceId:null,hall:from.location==='Store'?null:from.location,transferItemId:to.id,transferLocation:to.location};
+  const incoming:StockMovement={...common,id:randomUUID(),itemId:to.id,itemName:to.name,kind:'Transfer in',sourceId:id,hall:to.location==='Store'?null:to.location,transferItemId:from.id,transferLocation:from.location};
+  for(const movement of [out,incoming])await c.query('INSERT INTO shafi_stock_movements(id,item,source,body) VALUES($1,$2,$3,$4)',[movement.id,movement.itemId,movement.sourceId,JSON.stringify(movement)]);
+  return out;
+ });
+}
 export async function moveStock(actor:Actor,id:string,raw:unknown){
  requireRole(actor,['Director','GM','Hall manager']);const input=movementInput.parse(raw);
  if(['Opening','Write-off'].includes(input.kind))requireRole(actor,['Director']);

@@ -5,7 +5,9 @@ import { employeeData, saveEmployee, saveAttendance, recordEmployeePayment, void
 import { body, json, failure, deliver, type NodeResponse } from '../server/http.js';
 import { expenseFiles, saveFile, downloadFile } from '../server/attachments.js';
 import { dailyReport } from '../server/reports.js';
-import { inventoryData,saveStockItem,moveStock } from '../server/inventory.js';
+import { inventoryData,saveStockItem,moveStock,transferStock } from '../server/inventory.js';
+import { rentalData,receiveRental,recordRentalEvent } from '../server/rentals.js';
+import { cashReconciliation,recordCashCount } from '../server/cash-reconciliation.js';
 
 export async function handleStaff(request:RuntimeRequest){try{
  const resource=requestUrl(request).searchParams.get('resource')||'session';
@@ -17,6 +19,8 @@ export async function handleStaff(request:RuntimeRequest){try{
   if(resource==='users')return json(await users(actor));
   if(resource==='employees')return json(await employeeData(actor));
   if(resource==='inventory')return json(await inventoryData(actor));
+  if(resource==='rentals')return json(await rentalData(actor));
+  if(resource==='cash-reconciliation')return json(await cashReconciliation(actor,requestUrl(request).searchParams.get('date')));
   if(resource==='report')return json(await dailyReport(actor,requestUrl(request).searchParams.get('date')));
   if(resource==='files')return json(await expenseFiles(actor,z.string().uuid().parse(requestUrl(request).searchParams.get('expense'))));
   if(resource==='download')return downloadFile(actor,z.string().uuid().parse(requestUrl(request).searchParams.get('id')));
@@ -29,6 +33,10 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(resource==='employees')return json(await saveEmployee(actor,id,data.entry,version));
  if(resource==='stock-item')return json(await saveStockItem(actor,id,data.entry));
  if(resource==='stock-movement')return json(await moveStock(actor,id,data.entry));
+ if(resource==='stock-transfer')return json(await transferStock(actor,id,data.entry));
+ if(resource==='rentals')return json(await receiveRental(actor,id,data.entry));
+ if(resource==='rental-event')return json(await recordRentalEvent(actor,id,data.entry));
+ if(resource==='cash-count')return json(await recordCashCount(actor,id,data.entry));
  if(resource==='attendance')return json(await saveAttendance(actor,id,data.entry,version));
  if(resource==='payment')return json(await recordEmployeePayment(actor,id,data.entry));
  if(resource==='void-payment')return json(await voidEmployeePayment(actor,id,data.reason));

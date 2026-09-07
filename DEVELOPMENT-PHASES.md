@@ -1,5 +1,21 @@
 # Shafi operations development
 
+## Current delivery — supplier rentals, transfers and cash counts — 7 September 2026
+
+This section supersedes the remaining-work statements in earlier milestones below.
+
+Implemented:
+- **Supplier rentals:** saved item receipts with supplier, phone, hall, optional booking, quantity, return due date and paper reference; partial usable/damaged returns; damage/loss incidents; repair/recovery; GM/Director supplier resolution; overdue and outstanding filters; permanent history and print register. One receipt per item type; repeat the supplier slip reference for a multi-item delivery. Rental waiters remain employee records. Supplier charges, negotiated prices, deposits and payable balances are not yet part of this goods register; record actual payments and bills in Cash & expenses.
+- **Owned-stock transfers:** Director/GM transfers between matching item records at different store/hall locations. Both sides are saved atomically, duplicate retries are safe, overdraw and mismatched items are rejected. Reverse an incorrect transfer with a new transfer so the original history remains. Purchase forms can link an already-recorded expense/bill without recording another payment.
+- **Staff cash reconciliation:** Director/GM/Accountant compares cash physically counted with cash issues minus linked spending and returns through a selected date. Counted amounts, differences, identity and notes are retained. A stale balance is rejected on save and later ledger changes flag earlier counts for review. This is a cash-holding reconciliation, not an accounting-period lock or a whole-venue bank/cashbook balance. Non-portal holders use the exact recipient name, so distinct people need distinct names.
+- **Mobile forms:** 16px controls and separation between register/history sections; existing forest/ivory/gold UI and dependencies retained.
+- **Workspace loading:** sections load on demand; removed unused demonstration screens, connected website actions to real pages, added keyboard skip navigation and recoverable loading errors. The management shell build chunk fell from 106.42 kB to 19.90 kB (section chunks load separately).
+- **Cash-count browser check:** disposable expected cash of PKR 10,000 and counted cash of PKR 9,900 saved successfully and displayed PKR 100 short with the actor and ledger snapshot retained.
+
+Validation: 50 inventory/rental/transfer checks and 52 staff/employee/expense/reconciliation checks pass in disposable isolated schemas. Production build passes. Browser QA verifies a rental receipt of 100 with a partial return of 40, leaving 60 held. Use `node scripts/dev-staff-test.mjs --fixtures` for disposable stock/cash browser fixtures. The script never seeds production records. Read-only production smoke script: `node scripts/smoke-operations-live.mjs`.
+
+Remaining: date-aware inventory reservations; catalogue corrections and editing; rental purchase/contract prices, supplier balances and expense links after receipt; formal daily close; website enquiry intake; richer payroll/rehire history and reporting; restore drill; desktop packaging and agreed offline behavior. The complete ERP is not yet finished. Highest priorities next: stock reservations and supplier accounts, then daily closing and website intake.
+
 ## Inventory increment — 6 September 2026
 
 Implemented the next unfinished phase as a physical-stock foundation: catalogue with unique SKU/home location, Director-only opening counts, purchase receipts with supplier references, booking/employee-linked issues, partial usable returns, damage and loss incidents, repair/recovery and Director-only write-offs. Balances are derived from immutable movement records; concurrent issues and source settlements are serialized. Hall managers cannot issue against another hall's booking or view its movement history. Accountant inventory access is read-only. No sample stock quantities are seeded.
