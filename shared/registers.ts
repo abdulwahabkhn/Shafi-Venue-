@@ -1,12 +1,13 @@
 import { z } from 'zod';
+import { inventoryCategories } from './inventory.js';
 import { dateInput } from './staff.js';
 export const monthInput=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 export const expenseRowInput=z.object({name:z.string().trim().min(2).max(160),purpose:z.string().trim().min(2).max(1000),quantity:z.number().int().positive().max(1000000),price:z.number().int().min(0).max(100000000),method:z.enum(['Cash','Bank transfer']).default('Cash')}).refine(v=>v.price*v.quantity<=1000000000,'Total is too large');
 export type ExpenseRow={id:string;date:string;name:string;purpose:string;quantity:number;price:number;amount:number;method:string;actor:string;removed:boolean};
 export type ExpenseSheet={date:string;rows:ExpenseRow[];total:number;cash:number;bank:number;items:string[]};
-export const simpleItemInput=z.object({name:z.string().trim().min(2).max(160),quantity:z.number().int().min(0).max(1000000),unit:z.string().trim().min(1).max(30).default('pieces')});
-export const itemActionInput=z.object({itemId:z.string().uuid(),action:z.enum(['Damaged','Replaced','Remove quantity','Archive','Add quantity','Write off damage']),quantity:z.number().int().positive().max(1000000),bookingId:z.string().uuid().nullable().default(null),sourceId:z.string().uuid().nullable().default(null),note:z.string().trim().min(3).max(1000)});
-export type InventoryRow={id:string;name:string;unit:string;available:number;damaged:number;issued:number;missing:number;archived:boolean};
+export const simpleItemInput=z.object({name:z.string().trim().min(2).max(160),quantity:z.number().int().min(0).max(1000000).nullable(),category:z.enum(inventoryCategories).default('Other'),notes:z.string().trim().max(1000).default(''),unit:z.string().trim().min(1).max(30).default('pieces')});
+export const itemActionInput=z.object({itemId:z.string().uuid(),action:z.enum(['Damaged','Replaced','Remove quantity','Archive','Add quantity','Write off damage','Set opening count']),quantity:z.number().int().min(0).max(1000000),bookingId:z.string().uuid().nullable().default(null),sourceId:z.string().uuid().nullable().default(null),note:z.string().trim().min(3).max(1000)}).refine(v=>v.action==='Set opening count'||v.quantity>0,'Quantity must be positive');
+export type InventoryRow={id:string;name:string;category:string;notes?:string;quantityPending:boolean;unit:string;available:number;damaged:number;issued:number;missing:number;archived:boolean};
 export type InventoryEvent={id:string;itemId:string;kind:string;quantity:number;date:string;note:string;bookingReference:string;bookingId:string|null;sourceId:string|null;actor:string};
 export type InventoryRegister={items:InventoryRow[];history:InventoryEvent[]};
 export type MonthSummary={month:string;previousMonth:string;receipts:number;refunds:number;netReceipts:number;expenses:number;previousExpenses:number;changePercent:number|null;bookings:number;leaves:{id:string;name:string;leaves:number;excess:number}[]};

@@ -20,6 +20,11 @@ if(process.argv.includes('--fixtures')){
  await expenses.saveExpense(randomUUID(),{kind:'Cash issue',date:day,amount:10000,person:'QA cash holder',issuer:'QA Director',description:'Disposable QA cash handover'},auth.owner);
  console.log('Disposable stock and cash fixtures created only in the UI test schema.');
 }
+if(process.argv.includes('--inventory-catalog')){
+ const registers=await loader.ssrLoadModule('/server/registers.ts');
+ const catalog=JSON.parse(readFileSync('shared/inventory-catalog.json','utf8'));
+ for(const item of catalog.slice(0,2).concat(catalog.filter(i=>i.category==='Agriculture')))await registers.addInventoryItem(bootstrapGM,randomUUID(),{...item,quantity:null,unit:'units'});
+}
 if(process.argv.includes('--attendance')){
  const employees=await loader.ssrLoadModule('/server/employees.ts');
  await employees.saveEmployee(bootstrapGM,randomUUID(),{name:'QA attendance employee',sector:'Service',title:'Waiter',employment:'Permanent',joined:'2026-01-01',status:'Active',salary:30000,salaryEffective:'2026-01-01'});

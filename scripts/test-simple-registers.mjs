@@ -60,5 +60,17 @@ try{
  ok((await handleStaff(req('Director','monthly-summary'))).status===200,'Director monitoring API works');ok((await handleStaff(req('Accountant','expense-sheet'))).status===200,'Accountant expense sheet works');
  ok((await throughClient('GM','employees')).employees.length===1,'Frontend employee request loads saved records');
  ok((await throughClient('GM','inventory-register')).items.length===1,'Frontend inventory request loads saved records');
+ const uncounted=randomUUID();await reg.addInventoryItem(gm,uncounted,{name:'Dinner plate',category:'Crockery',quantity:null,unit:'units'});
+ let catalogRow=(await reg.inventoryRegister(gm)).items.find(i=>i.id===uncounted);
+ ok(catalogRow.category==='Crockery'&&catalogRow.quantityPending&&catalogRow.available===0,'Categorized item preserves unknown opening count');
+ await deny(reg.addInventoryItem(gm,uncounted,{name:'Dinner plate',category:'Other',quantity:null,unit:'units'}),'Retry cannot change category');
+ await deny(reg.addInventoryItem(gm,randomUUID(),{name:'Bad category',category:'Invalid',quantity:0}),'Invalid category rejected');
+ const countId=randomUUID(),opening={itemId:uncounted,action:'Set opening count',quantity:0,note:'GM verified zero stock'};
+ await reg.inventoryAction(gm,countId,opening);await reg.inventoryAction(gm,countId,opening);
+ catalogRow=(await reg.inventoryRegister(gm)).items.find(i=>i.id===uncounted);
+ ok(!catalogRow.quantityPending&&catalogRow.available===0,'Zero is a valid confirmed count and retry is idempotent');
+ await deny(reg.inventoryAction(gm,randomUUID(),{...opening,quantity:20}),'Opening count cannot reset existing stock');
+ await deny(reg.inventoryAction(accountant,randomUUID(),opening),'Accountant cannot set stock count');
+ await deny(reg.inventoryAction(gm,randomUUID(),{...opening,action:'Add quantity'}),'Other stock actions reject zero quantity');
  console.log(n+' simplified-workflow checks passed.');
 }finally{if(store)await store.bookingPool().end();await vite.close();await root.query(`DROP SCHEMA ${schema} CASCADE`);await root.end();console.log('Removed only isolated simplified test schema.');}
