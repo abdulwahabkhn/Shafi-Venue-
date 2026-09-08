@@ -28,4 +28,8 @@
 @media(max-width:600px){.booking-stats,.booking-filters{grid-template-columns:1fr;}.booking-stats strong{font-size:22px;}}
 .booking-error {color:#8d2821;background:#ffebe6;padding:16px;margin-bottom:20px;}
 .booking-error a {text-decoration:underline;}
+.staff-login {color:#13251f;color-scheme:light;}
+.staff-login .ops-button {min-height:46px;font-size:15px;cursor:pointer;}
+.staff-login .ops-button:disabled {opacity:.55;cursor:not-allowed;}
+.booking-fields fieldset + fieldset {margin-top:20px;}
 @media(max-width:600px){.booking-fields fieldset{grid-template-columns:1fr;}.booking-workspace h1{font-size:28px;}}

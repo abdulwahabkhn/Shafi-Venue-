@@ -1,4 +1,4 @@
-.ops-app {
+.ops-app, .staff-login {
   --ops-ink: #13251f;
   --ops-ink-soft: #385149;
   --ops-sidebar: #102f27;
@@ -12,6 +12,8 @@
   --ops-muted: #68766f;
   --ops-green: #2c7659;
   --ops-red: #a64b3b;
+}
+.ops-app {
   min-height: 100svh;
   color: var(--ops-ink);
   background: var(--ops-paper);

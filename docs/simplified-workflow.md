@@ -27,4 +27,23 @@ The user requested all employee and inventory data cleared. A production count f
 
 Historical test suites encode former Director-write / Accountant-payroll permissions and are not the acceptance source for this revised access model. Their prior pass counts must not be claimed as a current regression result. The public CMS is separate and unchanged.
 
-Browser verification remains limited: the automation could not retain typed values even in the unmodified username field. No complete browser booking-save pass is claimed. Client browser acceptance is still required. The web portal is not a packaged desktop/offline application.
+The 7 September browser limitation was superseded by the 8 September acceptance pass below. The web portal is not a packaged desktop/offline application.
+
+## 8 September continuation and acceptance
+
+Found and fixed a frontend transport defect: `staffApi` generated `?resource=resource=...`, so UI requests missed the intended handlers despite earlier direct-API checks passing. The shared helper now generates one resource parameter, retains date/month filters, and reports unavailable services clearly. `scripts/test-staff-transport.mjs` exercises twelve resource names, query parameters, POST payloads, authentication errors and non-JSON service errors without network writes. The disposable integration suite now has 46 passing checks, including actual frontend-helper calls into authentication and saved-register handlers.
+
+Additional fixes: Director can select historical attendance dates while mutation fields remain disabled; typed date/month changes update the displayed records immediately; expense loading ignores superseded requests; failed dashboard/expense loads do not display stale figures; daily reports show expense item, purpose, quantity and price; inventory replacement options show remaining damage; invalid stock actions are disabled; refresh controls recover inventory/report loading; salary month is fixed while a paid-record form is open; retired manager assignment is removed from bookings; current status filters are Hold/Confirmed/Completed with historical filters only when needed; login buttons receive the operations colour tokens and a normal signed-out visit does not show an error.
+
+Browser acceptance used disposable accounts and a separate `ui_test_` schema:
+
+- GM signed in and created a booking for 20 September, 18:00–22:00, with total PKR 10,000. Recorded PKR 3,000 received; balance became PKR 7,000.
+- Reloading preserved the booking and payment. The dashboard showed one booking and PKR 3,000 net receipts; the calendar displayed the saved event.
+- Entered five tissue boxes at PKR 200. Daily expenses and cash spent showed PKR 1,000.
+- Created 20 chairs; two damaged against the booking resulted in 18 usable/two damaged. Replacing one resulted in 19 usable/one damaged.
+- Created an employee with PKR 30,000 salary; recorded PKR 1,000 advance and marked the full salary paid. Both records appeared separately in payment history.
+- Accountant sign-in exposed only the expense sheet and its add/remove actions.
+- Director saw the saved dashboard, detailed daily report and employee payment history without mutation actions. Selecting a previous attendance date updated the heading after the date-input fix.
+- Login checked visually on desktop/320px. The expense page had no document-level horizontal overflow at 320, 768 and 1280px. This is not a complete screenshot audit of every form.
+
+No live business records were added by these tests. Outstanding scope includes packaged desktop/offline operation, production-volume performance testing, restore rehearsal and client acceptance with real operating data. Historical requirements-review notes about Hall Manager/cash-custody features predate the simplified client brief and must not be treated as the current roadmap.

@@ -7,7 +7,7 @@ const Context=createContext<Actor|null>(null);
 export const useActor=()=>useContext(Context)!;
 export function StaffAccess({children}:{children:ReactNode}){
  const [actor,setActor]=useState<Actor|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const refresh=()=>{setLoading(true);staffApi<Actor>('session').then(setActor).catch(e=>setError(e.message)).finally(()=>setLoading(false));};
+ const refresh=()=>{setLoading(true);setError('');staffApi<Actor>('session').then(setActor).catch(e=>{if(e.status!==401)setError(e.message);}).finally(()=>setLoading(false));};
  useEffect(refresh,[]);
  async function login(e:FormEvent<HTMLFormElement>){e.preventDefault();const data=new FormData(e.currentTarget);setBusy(true);setError('');try{setActor(await staffApi('login',{username:data.get('username'),password:data.get('password')}));}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
  if(loading)return <p className="staff-loading" role="status">Opening staff portal…</p>;

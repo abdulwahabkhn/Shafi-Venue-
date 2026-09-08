@@ -18,14 +18,22 @@ try{
  const {handleStaff}=await vite.ssrLoadModule('/api/staff.ts'),{handleBookings}=await vite.ssrLoadModule('/api/bookings.ts');const origin='https://shafi-venue.vercel.app';
  const cookies={};for(const a of [gm,director,accountant])cookies[a.role]=(await auth.staffLogin(new Request(origin),{username:a.id,password})).cookie.split(';')[0];
  const req=(role,resource,data)=>new Request(origin+'/api/staff?resource='+resource,{method:data?'POST':'GET',headers:{cookie:cookies[role],origin,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});
+ const {staffApi}=await vite.ssrLoadModule('/src/management/staff-api.ts');
+ const throughClient=async(role,resource,data,params)=>{const realFetch=globalThis.fetch;try{globalThis.fetch=async(path,options)=>handleStaff(new Request(origin+path,{...options,headers:{...options?.headers,origin,...(role?{cookie:cookies[role]}:{})}}));return await staffApi(resource,data,params);}finally{globalThis.fetch=realFetch;}};
+ ok((await throughClient(null,'login',{username:gm.id,password})).role==='GM','Frontend login request reaches staff authentication');
+ ok((await throughClient('Director','session')).role==='Director','Frontend session request reaches selected actor');
  for(const resource of ['employees','inventory-register','monthly-summary','users','report','rentals','cash-reconciliation'])ok((await handleStaff(req('Accountant',resource))).status===403,'Accountant denied '+resource);
  ok((await handleBookings(new Request(origin+'/api/bookings',{headers:{cookie:cookies.Accountant}}))).status===403,'Accountant cannot read bookings');
  for(const resource of ['employees','payment','users','inventory-register','expense-sheet'])ok((await handleStaff(req('Director',resource,{id:randomUUID(),entry:{}}))).status===403,'Director write denied '+resource);
  const day=pkToday(),month=day.slice(0,7),expenseId=randomUUID(),expense={name:'Tissue boxes',purpose:'Daily supplies',quantity:5,price:200,method:'Cash'};
  await reg.addExpenseRow(accountant,expenseId,expense);await reg.addExpenseRow(accountant,expenseId,expense);let sheet=await reg.expenseSheet(director,day);ok(sheet.total===1000&&sheet.rows.length===1,'Quantity times price, server date and duplicate retry');
+ ok((await throughClient('Accountant','expense-sheet',undefined,{date:day})).total===1000,'Frontend expense query uses correct resource and date');
+ const report=await throughClient('Director','report',undefined,{date:day}),detail=report.rows.find(r=>r.id===expenseId);
+ ok(detail.item==='Tissue boxes'&&detail.purpose==='Daily supplies'&&detail.quantity===5&&detail.price===200&&detail.amount===1000,'Director report includes item purpose quantity price and total');
  await deny(reg.addExpenseRow(director,randomUUID(),expense),'Director cannot add expense');await deny(reg.addExpenseRow(gm,randomUUID(),{...expense,quantity:-1}),'Negative quantity rejected');await deny(reg.addExpenseRow(gm,expenseId,expense),'Another actor cannot replay expense id');
  await reg.addExpenseRow(gm,randomUUID(),{...expense,method:'Bank transfer',quantity:2});sheet=await reg.expenseSheet(gm,day);ok(sheet.cash===1000&&sheet.bank===400&&sheet.total===1400,'Cash bank and daily total reconcile');
  await reg.removeExpenseRow(accountant,expenseId,'Wrong entry');sheet=await reg.expenseSheet(accountant,day);ok(sheet.total===400&&sheet.rows.length===2&&sheet.rows[0].removed,'Removal retains history and changes totals');
+ ok(!(await throughClient('Director','report',undefined,{date:day})).rows.some(r=>r.id===expenseId),'Removed expense excluded from daily report');
  const bookingId=randomUUID(),base={customer:'Test booking',phone:'03001234567',hall:'Hall 1',event:'Walima',date:'2027-01-10',start:'18:00',end:'22:00',guests:100,total:10000,manager:'',notes:'',status:'Confirmed'};
  await store.saveBooking(base,bookingId);await deny(store.saveBooking(base,randomUUID()),'Overlapping booking rejected');const race=await Promise.allSettled([store.saveBooking({...base,date:'2027-02-10'},randomUUID()),store.saveBooking({...base,date:'2027-02-10'},randomUUID())]);ok(race.filter(r=>r.status==='fulfilled').length===1,'Concurrent booking overlap rejected');
  await store.recordPayment(bookingId,{amount:3000,method:'Cash',reference:'',key:randomUUID()});let summary=await reg.monthlySummary(director,month);ok(summary.netReceipts===3000&&summary.expenses===400&&summary.changePercent===null,'Month uses receipt dates, active expenses and zero-baseline comparison');
@@ -43,5 +51,7 @@ try{
  const paid=(await employees.employeeData(gm)).payments[0];await employees.voidEmployeePayment(gm,paid.id,'Test correction');await employees.recordEmployeePayment(gm,randomUUID(),{...pay,amount:29000,deductionRate:500,deductionDays:2,note:'GM chose deduction'});ok((await employees.employeeData(gm)).payments.some(p=>!p.voidedAt&&p.amount===29000),'GM explicitly chooses daily deduction');
  await employees.recordEmployeePayment(gm,randomUUID(),{employeeId,kind:'Advance',amount:1000,date:day,method:'Cash'});await deny(employees.recordEmployeePayment(gm,randomUUID(),{employeeId,kind:'Advance repayment',amount:1001,date:day,method:'Cash'}),'Advance over-repayment blocked');
  ok((await handleStaff(req('Director','monthly-summary'))).status===200,'Director monitoring API works');ok((await handleStaff(req('Accountant','expense-sheet'))).status===200,'Accountant expense sheet works');
+ ok((await throughClient('GM','employees')).employees.length===1,'Frontend employee request loads saved records');
+ ok((await throughClient('GM','inventory-register')).items.length===1,'Frontend inventory request loads saved records');
  console.log(n+' simplified-workflow checks passed.');
 }finally{if(store)await store.bookingPool().end();await vite.close();await root.query(`DROP SCHEMA ${schema} CASCADE`);await root.end();console.log('Removed only isolated simplified test schema.');}
