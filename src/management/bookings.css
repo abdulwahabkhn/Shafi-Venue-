@@ -32,6 +32,15 @@
 .staff-login .ops-button {min-height:46px;font-size:15px;cursor:pointer;}
 .staff-login .ops-button:disabled {opacity:.55;cursor:not-allowed;}
 .booking-fields fieldset + fieldset {margin-top:20px;}
+.inventory-categories{list-style:none;padding:0;margin:16px 0 24px;}
+.inventory-categories li+li{border-top:1px solid #d9ded6;}
+.inventory-categories button{display:flex;align-items:center;gap:16px;width:100%;min-height:64px;padding:16px 4px;background:transparent;color:inherit;border:0;text-align:left;cursor:pointer;font:inherit;}
+.inventory-categories strong{flex:1;font-size:17px;}
+.inventory-categories span{white-space:nowrap;font-size:14px;}
+.inventory-categories button:hover{background:#eef2ec;}
+.inventory-categories button:focus-visible{outline:2px solid #936d22;outline-offset:2px;}
+.inventory-categories button:disabled{opacity:.55;cursor:not-allowed;}
+@media print{.inventory-categories button{display:flex!important;}.inventory-categories svg{display:none;}}
 .attendance-list{list-style:none;padding:0;margin:20px 0;}
 .attendance-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid #d9ded6;}
 .attendance-row>div:first-child{min-width:0;overflow-wrap:anywhere;}
