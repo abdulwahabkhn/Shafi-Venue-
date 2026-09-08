@@ -32,4 +32,13 @@
 .staff-login .ops-button {min-height:46px;font-size:15px;cursor:pointer;}
 .staff-login .ops-button:disabled {opacity:.55;cursor:not-allowed;}
 .booking-fields fieldset + fieldset {margin-top:20px;}
+.attendance-list{list-style:none;padding:0;margin:20px 0;}
+.attendance-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid #d9ded6;}
+.attendance-row>div:first-child{min-width:0;overflow-wrap:anywhere;}
+.attendance-row strong{font-size:17px;}
+.attendance-row span{display:block;margin-top:4px;font-size:14px;}
+.attendance-actions{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;}
+.attendance-actions .ops-button{min-height:44px;}
+.attendance-actions [aria-pressed=true]:disabled{opacity:1;}
+@media(max-width:600px){.attendance-row{align-items:flex-start;flex-direction:column;}.attendance-actions{width:100%;}.attendance-actions .ops-button{flex:1;padding:10px;}}
 @media(max-width:600px){.booking-fields fieldset{grid-template-columns:1fr;}.booking-workspace h1{font-size:28px;}}

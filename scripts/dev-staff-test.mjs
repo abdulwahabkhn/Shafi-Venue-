@@ -20,5 +20,9 @@ if(process.argv.includes('--fixtures')){
  await expenses.saveExpense(randomUUID(),{kind:'Cash issue',date:day,amount:10000,person:'QA cash holder',issuer:'QA Director',description:'Disposable QA cash handover'},auth.owner);
  console.log('Disposable stock and cash fixtures created only in the UI test schema.');
 }
+if(process.argv.includes('--attendance')){
+ const employees=await loader.ssrLoadModule('/server/employees.ts');
+ await employees.saveEmployee(bootstrapGM,randomUUID(),{name:'QA attendance employee',sector:'Service',title:'Waiter',employment:'Permanent',joined:'2026-01-01',status:'Active',salary:30000,salaryEffective:'2026-01-01'});
+}
 const server=await createServer({server:{host:'127.0.0.1',port:5175,strictPort:true}});await server.listen();console.log('Isolated UI test ready at http://127.0.0.1:5175/management. Press Enter to stop and remove its test schema.');
 process.stdin.resume();process.stdin.once('data',async()=>{await server.close();await store.bookingPool().end();await loader.close();await root.query(`DROP SCHEMA ${schema} CASCADE`);await root.end();console.log('Isolated UI schema removed.');process.exit(0);});
