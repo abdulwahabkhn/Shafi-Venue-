@@ -11,8 +11,12 @@ const vite=await createServer({configFile:false,server:{middlewareMode:true,hmr:
 try{
  store=await vite.ssrLoadModule('/server/postgres-bookings.ts');await store.migrateBookings();for(const [f,k]of [['staff-auth','staffSchema'],['expenses','expenseSchema'],['employees','employeeSchema'],['inventory','inventorySchema']])await store.bookingPool().query((await vite.ssrLoadModule('/server/'+f+'.ts'))[k]);
  const auth=await vite.ssrLoadModule('/server/staff-auth.ts'),reg=await vite.ssrLoadModule('/server/registers.ts'),employees=await vite.ssrLoadModule('/server/employees.ts'),{pkToday}=await vite.ssrLoadModule('/shared/staff.ts');
- const gm={id:randomUUID(),name:'Test GM',role:'GM',hall:null},director={id:randomUUID(),name:'Test Director',role:'Director',hall:null},accountant={id:randomUUID(),name:'Test Accountant',role:'Accountant',hall:null},password='isolated-register-test-only';
+ const gm={id:randomUUID(),name:'Test GM',role:'GM',hall:null},director={id:randomUUID(),name:'Test Director',role:'Director',hall:null},accountant={id:randomUUID(),name:'Test Accountant',role:'Accountant',hall:null},password='Test@123';
+ const {defaultExpenseItems,mergeExpenseItems}=await vite.ssrLoadModule('/shared/expense-items.ts');
+ ok(defaultExpenseItems.length===28&&new Set(defaultExpenseItems).size===28,'All 28 daily expense choices are provided');
+ ok(mergeExpenseItems(['staff FOOD','  New   supply ','new supply']).length===29,'Expense choices deduplicate case and whitespace');
  for(const a of [gm,director,accountant])await auth.saveUser(gm,a.id,{...a,username:a.id,password});
+ await deny(auth.saveUser(gm,randomUUID(),{name:'Too short',username:'short-password',role:'Accountant',password:'Short@1'}),'Passwords below eight characters are rejected');
  await deny(auth.saveUser(gm,randomUUID(),{name:'Removed role',username:'legacy-manager',role:'Hall manager',hall:'Hall 1',password}),'Hall Manager creation rejected');
  await deny(auth.saveUser(director,randomUUID(),{...gm,username:'no-write',password}),'Director cannot administer accounts');
  const {handleStaff}=await vite.ssrLoadModule('/api/staff.ts'),{handleBookings}=await vite.ssrLoadModule('/api/bookings.ts');const origin='https://shafi-venue.vercel.app';
@@ -27,12 +31,15 @@ try{
  for(const resource of ['employees','payment','users','inventory-register','expense-sheet'])ok((await handleStaff(req('Director',resource,{id:randomUUID(),entry:{}}))).status===403,'Director write denied '+resource);
  const day=pkToday(),month=day.slice(0,7),expenseId=randomUUID(),expense={name:'Tissue boxes',purpose:'Daily supplies',quantity:5,price:200,method:'Cash'};
  await reg.addExpenseRow(accountant,expenseId,expense);await reg.addExpenseRow(accountant,expenseId,expense);let sheet=await reg.expenseSheet(director,day);ok(sheet.total===1000&&sheet.rows.length===1,'Quantity times price, server date and duplicate retry');
+ ok(sheet.items.includes('Tissue boxes')&&defaultExpenseItems.every(name=>sheet.items.includes(name)),'Saved custom expense joins the default choice list');
+ ok((await reg.expenseSheet(gm,'2026-01-01')).items.includes('Tissue boxes'),'Saved custom choices remain available across dates');
  ok((await throughClient('Accountant','expense-sheet',undefined,{date:day})).total===1000,'Frontend expense query uses correct resource and date');
  const report=await throughClient('Director','report',undefined,{date:day}),detail=report.rows.find(r=>r.id===expenseId);
  ok(detail.item==='Tissue boxes'&&detail.purpose==='Daily supplies'&&detail.quantity===5&&detail.price===200&&detail.amount===1000,'Director report includes item purpose quantity price and total');
  await deny(reg.addExpenseRow(director,randomUUID(),expense),'Director cannot add expense');await deny(reg.addExpenseRow(gm,randomUUID(),{...expense,quantity:-1}),'Negative quantity rejected');await deny(reg.addExpenseRow(gm,expenseId,expense),'Another actor cannot replay expense id');
  await reg.addExpenseRow(gm,randomUUID(),{...expense,method:'Bank transfer',quantity:2});sheet=await reg.expenseSheet(gm,day);ok(sheet.cash===1000&&sheet.bank===400&&sheet.total===1400,'Cash bank and daily total reconcile');
  await reg.removeExpenseRow(accountant,expenseId,'Wrong entry');sheet=await reg.expenseSheet(accountant,day);ok(sheet.total===400&&sheet.rows.length===2&&sheet.rows[0].removed,'Removal retains history and changes totals');
+ ok(sheet.items.filter(name=>name==='Tissue boxes').length===1,'Repeated or removed expenses do not duplicate or lose saved choices');
  ok(!(await throughClient('Director','report',undefined,{date:day})).rows.some(r=>r.id===expenseId),'Removed expense excluded from daily report');
  const bookingId=randomUUID(),base={customer:'Test booking',phone:'03001234567',hall:'Hall 1',event:'Walima',date:'2027-01-10',start:'18:00',end:'22:00',guests:100,total:10000,manager:'',notes:'',status:'Confirmed'};
  await store.saveBooking(base,bookingId);await deny(store.saveBooking(base,randomUUID()),'Overlapping booking rejected');const race=await Promise.allSettled([store.saveBooking({...base,date:'2027-02-10'},randomUUID()),store.saveBooking({...base,date:'2027-02-10'},randomUUID())]);ok(race.filter(r=>r.status==='fulfilled').length===1,'Concurrent booking overlap rejected');

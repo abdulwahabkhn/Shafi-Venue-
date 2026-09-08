@@ -47,3 +47,9 @@ Browser acceptance used disposable accounts and a separate `ui_test_` schema:
 - Login checked visually on desktop/320px. The expense page had no document-level horizontal overflow at 320, 768 and 1280px. This is not a complete screenshot audit of every form.
 
 No live business records were added by these tests. Outstanding scope includes packaged desktop/offline operation, production-volume performance testing, restore rehearsal and client acceptance with real operating data. Historical requirements-review notes about Hall Manager/cash-custody features predate the simplified client brief and must not be treated as the current roadmap.
+
+### Expense catalogue and requested test cleanup — 8 September 2026
+
+The daily expense form provides the client's 28 item names in a select, plus “Add new item”. Saving a custom expense makes its name available across dates and users; removed rows retain their names in the catalogue without contributing to totals. Choices are deduplicated by whitespace and case. The defaults create no expense transactions. The staff password minimum is eight characters; password hashing and session protections remain unchanged.
+
+The owner-identified Wahab test booking `SM-2026-372225A8` and its PKR 70,000 test payment were removed. A recovery snapshot of the booking, payment and original booking audit rows is retained in staff audit entry `85ca7387-4cd4-4aad-81df-26016463eadd`. No linked operational records existed. Production build and 52 isolated workflow checks passed.
