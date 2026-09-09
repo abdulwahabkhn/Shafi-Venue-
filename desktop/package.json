@@ -8,6 +8,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win nsis --x64 --publish never",
+    "build:signed": "electron-builder --win nsis --x64 --publish never -c.forceCodeSigning=true -c.directories.output=release-signed",
     "test": "node --test policy.test.cjs main.test.cjs"
   },
   "devDependencies": {

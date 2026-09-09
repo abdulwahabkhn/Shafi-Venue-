@@ -25,6 +25,8 @@ Updated: 9 September 2026. This file preserves implementation status independent
 
 ## Remaining release gates
 
+Signing follow-up: no usable signing certificate was found in CurrentUser/My or LocalMachine/My, and standard certificate/Azure signing environment settings are absent. `npm run build:signed` in `desktop` now requires a signature and writes to `release-signed`; it must not silently produce an unsigned client release. The existing Desktop installer remains unsigned. Completion requires the owner's verified signing identity; no identity or purchase has been assumed. Signing identifies the publisher but does not guarantee SmartScreen reputation.
+
 1. Local preparation complete: rebuild, packaged launch, archive-content/source verification and installer checksum recorded. No Windows Sandbox is available on this machine; clean installation testing remains external.
 2. Genuine Windows code signing is not configured. Installer signature previously verified as `NotSigned`. Do not bypass Windows warnings or describe this as a signed release.
 3. Install/uninstall and printing/file-picker checks on a clean Windows test machine remain unverified. Mocked lifecycle tests do not replace these checks.

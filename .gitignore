@@ -1,5 +1,6 @@
 node_modules/
 desktop/release/
+desktop/release-signed/
 .cms-local/
 dist/
 dist-ssr/
