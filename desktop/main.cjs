@@ -5,8 +5,9 @@ const {PORTAL, trusted} = require('./policy.cjs');
 app.enableSandbox();
 app.setAppUserModelId('com.shafimarquee.management');
 let win;
+let loading = false;
 const smoke = process.argv.includes('--smoke-test');
-if (!app.requestSingleInstanceLock()) app.quit();
+if (!app.requestSingleInstanceLock()) { if(smoke) app.exit(2); else app.quit(); }
 else {
   app.on('second-instance', () => {if(win){if(win.isMinimized())win.restore();win.show();win.focus();}});
   app.whenReady().then(async () => {
@@ -47,15 +48,22 @@ else {
   });
 }
 async function loadPortal() {
+  if(loading || !win || win.isDestroyed()) return;
+  loading = true;
+  let retry = false;
   try {
     await win.loadURL(PORTAL);
     if(smoke) {console.log('Desktop HTTPS portal loaded with sandbox and isolated session.');app.exit(0);}
   } catch {
     if(smoke) {app.exit(1);return;}
+    if(win.isDestroyed()) return;
     const result=await dialog.showMessageBox(win,{type:'warning',title:'Connection unavailable',
       message:'The online portal could not be loaded.',detail:'Check your internet connection. No offline changes are saved. Choose Retry when connected.',
       buttons:['Retry','Close'],defaultId:0,cancelId:1});
-    if(result.response===0) void loadPortal(); else win.close();
+    if(!win.isDestroyed()) { if(result.response===0) retry = true; else win.close(); }
+  } finally {
+    loading = false;
   }
+  if(retry) void loadPortal();
 }
 app.on('window-all-closed',()=>app.quit());
