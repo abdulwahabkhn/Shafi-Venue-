@@ -21,10 +21,11 @@ Updated: 9 September 2026. This file preserves implementation status independent
 - Follow-up fixes: ignore overlapping startup/reload attempts, safely handle window closure during failed loading, distinguish a second running instance from a successful smoke test.
 - Seven desktop tests pass: security preferences, permission denial, navigation/redirect rejection, download filtering, offline-close recovery, window-close race and smoke exit codes.
 - Follow-up candidate rebuilt; packaged launch check exited successfully with code 0.
+- Final package audit: archive contains only the two expected code files and release metadata. Code matches source `e9634cf`; development metadata is stripped as expected. Installer SHA-256 and testing instructions are recorded in `docs/DESKTOP-TESTING.md`.
 
 ## Remaining release gates
 
-1. Rebuild and packaged launch check completed. Full installation testing is still separate.
+1. Local preparation complete: rebuild, packaged launch, archive-content/source verification and installer checksum recorded. No Windows Sandbox is available on this machine; clean installation testing remains external.
 2. Genuine Windows code signing is not configured. Installer signature previously verified as `NotSigned`. Do not bypass Windows warnings or describe this as a signed release.
 3. Install/uninstall and printing/file-picker checks on a clean Windows test machine remain unverified. Mocked lifecycle tests do not replace these checks.
 4. No automatic binary updater. Electron security updates require rebuilding and redistributing setup; web updates are independent.
