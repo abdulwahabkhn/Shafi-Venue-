@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { dateInput } from './staff.js';
 export const inventoryCategories=['Crockery','Hall items','Cleaning','Maintenance','Decoration','Agriculture','Other','Furniture','Dining','Electrical'] as const;
-export const locations=['Store','Hall 1','Hall 2'] as const;
+export const locations=['Store','Hall 1','Hall 2','Hall 3'] as const;
 export const itemInput=z.object({sku:z.string().trim().toUpperCase().regex(/^[A-Z0-9-]{2,40}$/),name:z.string().trim().min(2).max(160),category:z.enum(inventoryCategories),location:z.enum(locations),unit:z.string().trim().min(1).max(30),minimum:z.number().int().min(0).max(1000000),notes:z.string().trim().max(1000).default('')});
 export type StockItem=z.infer<typeof itemInput>&{id:string;created:string};
 export const movementKinds=['Opening','Purchase','Issue','Return','Damage','Loss','Repair','Recover','Write-off'] as const;

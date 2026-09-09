@@ -102,5 +102,5 @@ export const galleryItems = [
 ]
 
 export const eventOptions = ['Wedding', 'Walima', 'Barat', 'Mehndi', 'Nikkah', 'Corporate event', 'Other event']
-export const hallOptions = ['No preference', 'Hall 1', 'Hall 2']
+export const hallOptions = ['No preference', 'Hall 1', 'Hall 2', 'Hall 3', 'Hall 1 + Hall 2', 'Hall 1 + Hall 3', 'Hall 2 + Hall 3', 'All halls']
 export const packageOptions = ['No package preference', ...packages.map((item) => item.name)]

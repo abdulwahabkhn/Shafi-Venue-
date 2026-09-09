@@ -1,4 +1,5 @@
 .cms-local/
+desktop/
 .env*
 .agents/
 .impeccable/

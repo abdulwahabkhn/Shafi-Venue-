@@ -73,7 +73,7 @@ export function sessionValid(request: RuntimeRequest) {
       typeof data.expires === "number" &&
       data.expires > Date.now() &&
       data.passwordVersion ===
-        digest(process.env.CMS_ADMIN_PASSWORD!).toString("hex")
+        sign(`password-version:${process.env.CMS_ADMIN_PASSWORD!}`)
     );
   } catch {
     return false;
@@ -84,7 +84,8 @@ export function sessionCookie(request: RuntimeRequest, logout = false) {
     JSON.stringify({
       expires: Date.now() + maxAge * 1000,
       nonce: randomBytes(16).toString("hex"),
-      passwordVersion: digest(process.env.CMS_ADMIN_PASSWORD!).toString("hex"),
+      // A keyed version marker avoids exposing an offline password-guessing hash.
+      passwordVersion: sign(`password-version:${process.env.CMS_ADMIN_PASSWORD!}`),
     }),
   ).toString("base64url");
   const secure =

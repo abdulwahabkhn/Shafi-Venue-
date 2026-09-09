@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { bookingInput, paymentInput, type Booking } from '../shared/bookings.js';
+import { bookingInput, paymentInput, holdsSlot, overlap, type Booking } from '../shared/bookings.js';
 
 export function bookingStore(path = resolve('.cms-local/bookings.sqlite')) {
   if (path !== ':memory:') mkdirSync(resolve(path, '..'), { recursive: true });
@@ -23,7 +23,7 @@ export function bookingStore(path = resolve('.cms-local/bookings.sqlite')) {
       const previous = id ? records.find(b => b.id === id) : undefined;
       if (id && (!previous || previous.version !== version)) throw new Error('Record changed. Reload before saving.');
       if (input.total < (previous?.paid ?? 0)) throw new Error('Total cannot be lower than recorded payments.');
-      if (['Hold','Confirmed'].includes(input.status) && records.some(b => b.id !== id && ['Hold','Confirmed'].includes(b.status) && b.hall === input.hall && b.date === input.date && b.start < input.end && b.end > input.start)) throw new Error('This hall already has a booking or hold during that time.');
+      if (holdsSlot(input) && records.some(b => b.id !== id && holdsSlot(b) && overlap(b,input))) throw new Error('A selected hall already has a booking or hold during that time.');
       const record: Booking = { ...input, id: id ?? randomUUID(), version: (previous?.version ?? 0) + 1, paid: previous?.paid ?? 0, createdAt: previous?.createdAt ?? new Date().toISOString() };
       db.prepare('INSERT OR REPLACE INTO bookings VALUES(?,?,?)').run(record.id, JSON.stringify(record), record.version);
       audit(record.id, previous ? 'Booking updated' : 'Booking created');

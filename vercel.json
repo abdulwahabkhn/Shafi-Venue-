@@ -4,6 +4,7 @@
     { "source": "/management/:path*", "destination": "/admin.html" }
   ],
   "headers": [
+    { "source": "/(.*)", "headers": [{ "key": "Content-Security-Policy", "value": "script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'" }, { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }] },
     { "source": "/admin/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }, { "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/management/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }, { "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }] }

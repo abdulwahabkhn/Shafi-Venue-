@@ -1,6 +1,7 @@
 import { useEffect,useRef,useState,type FormEvent } from 'react';
 import { rentalBalance,rentalSourceRemaining,type RentalData,type RentalEvent } from '../../shared/rentals';
 import { halls,pkToday } from '../../shared/staff';
+import { reservedHalls } from '../../shared/halls';
 import type { Booking } from '../../shared/bookings';
 import { staffApi } from './staff-api';
 import { bookingApi } from './booking-api';
@@ -50,7 +51,7 @@ export default function RentalsWorkspace(){
      <label>Supplier name<input name="supplier" required minLength={2} maxLength={160}/></label><label>Supplier phone (optional)<input name="phone" type="tel" maxLength={30}/></label>
      <label>Item description<input name="item" required minLength={2} maxLength={160} placeholder="White dinner plates"/></label><label>Unit<input name="unit" required maxLength={30} defaultValue="pieces"/></label>
      <label>Receiving hall<select value={hall} onChange={e=>setHall(e.target.value as typeof hall)} disabled={actor.role==='Hall manager'}>{halls.map(h=><option key={h}>{h}</option>)}</select></label>
-     <label>Booking (optional)<select key={hall} name="bookingId"><option value="">General hall use</option>{bookings.filter(b=>b.hall===hall&&b.status!=='Cancelled').map(b=><option key={b.id} value={b.id}>{b.reference} · {b.customer} · {b.date}</option>)}</select></label>
+     <label>Booking (optional)<select key={hall} name="bookingId"><option value="">General hall use</option>{bookings.filter(b=>reservedHalls(b.hall).includes(hall)&&b.status!=='Cancelled').map(b=><option key={b.id} value={b.id}>{b.reference} · {b.customer} · {b.date}</option>)}</select></label>
      <label>Date received<input name="received" type="date" required max={pkToday()} defaultValue={pkToday()}/></label><label>Return due date<input name="due" type="date" required defaultValue={pkToday()}/></label>
     </>:<>
      <label>Movement<select value={kind} onChange={e=>{setKind(e.target.value as RentalEvent['kind']);setSourceId('');}}>{(['Return','Damage','Loss',...(canResolve?['Repair','Recover','Supplier settlement']:[])] as RentalEvent['kind'][]).map(k=><option key={k}>{k}</option>)}</select></label>

@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { bookingHallOptions, sharesHall } from './halls.js';
 
 export const bookingInput = z.object({
   customer: z.string().trim().min(2).max(120),
   phone: z.string().trim().regex(/^[+\d ()-]{7,25}$/).refine(v => v.replace(/\D/g, '').length >= 7, 'Enter a valid phone number'),
-  hall: z.enum(['Hall 1', 'Hall 2']),
+  hall: z.enum(bookingHallOptions),
   event: z.enum(['Barat', 'Walima', 'Mehndi', 'Nikkah', 'Corporate', 'Other']),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v, 'Choose a valid date'),
   start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
@@ -28,4 +29,4 @@ export const transactionInput = paymentInput.extend({ kind: z.enum(['Receipt', '
 export type Payment = z.infer<typeof transactionInput> & { id: string; booking: string; created: string };
 export type BookingHistory = { payments: Payment[]; audit: {id:string; action:string; created:string; actor:string}[] };
 export function holdsSlot(b: BookingInput, now = Date.now()) { return b.status === 'Confirmed' || b.status === 'Completed' || (b.status === 'Hold' && !!b.holdUntil && Date.parse(b.holdUntil) > now); }
-export function overlap(a: BookingInput,b: BookingInput) { return a.hall === b.hall && `${a.date}T${a.start}` < `${b.endDate || b.date}T${b.end}` && `${a.endDate || a.date}T${a.end}` > `${b.date}T${b.start}`; }
+export function overlap(a: BookingInput,b: BookingInput) { return sharesHall(a.hall, b.hall) && `${a.date}T${a.start}` < `${b.endDate || b.date}T${b.end}` && `${a.endDate || a.date}T${a.end}` > `${b.date}T${b.start}`; }

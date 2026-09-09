@@ -1,4 +1,5 @@
 node_modules/
+desktop/release/
 .cms-local/
 dist/
 dist-ssr/

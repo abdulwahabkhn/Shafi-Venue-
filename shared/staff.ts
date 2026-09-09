@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const roles = ['Director', 'GM', 'Accountant', 'Hall manager'] as const;
-export const halls = ['Hall 1', 'Hall 2'] as const;
+import { halls } from './halls.js';
+export { halls };
 export type Actor = { id: string; name: string; role: typeof roles[number]; hall: typeof halls[number] | null };
 export type StaffUser = Actor & { username: string; active: boolean };
 export const userInput = z.object({

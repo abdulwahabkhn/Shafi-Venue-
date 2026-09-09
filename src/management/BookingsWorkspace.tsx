@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { bookingInput, type Booking, type BookingInput, type BookingHistory } from '../../shared/bookings';
 import { bookingApi } from './booking-api';
+import { bookingHallOptions } from '../../shared/halls';
 import './bookings.css';
 import { useActor } from './StaffAccess';
 const empty:BookingInput={customer:'',phone:'',hall:'Hall 1',event:'Walima',date:'',start:'18:00',end:'22:00',guests:100,total:0,manager:'',notes:'',status:'Confirmed',packageName:'',holdUntil:null,cancellationReason:''};
@@ -28,7 +29,7 @@ export default function BookingsWorkspace({rows,onChange,initialId,onClose}:{row
  <form onSubmit={save} className="booking-fields"><fieldset disabled={busy||closed||!canEdit}>
  {(['customer','phone','date','start','end','guests','total','packageName'] as const).map(k=><label key={k}>{({customer:'Customer name',phone:'Phone number',date:'Event date',start:'Start time (Pakistan)',end:'End time (Pakistan)',guests:'Number of guests',total:'Agreed total (whole PKR)',packageName:'Agreed package'})[k]}<input required={k!=='packageName'} type={k==='date'?'date':['start','end'].includes(k)?'time':['guests','total'].includes(k)?'number':k==='phone'?'tel':'text'} min={k==='guests'?1:undefined} step={['guests','total'].includes(k)?1:undefined} maxLength={k==='phone'?25:160} value={form[k]} onInput={e=>change(k,['guests','total'].includes(k)?Number(e.currentTarget.value):e.currentTarget.value)} /></label>)}
  <label>End date (for overnight events)<input type="date" min={form.date} value={form.endDate||form.date} onInput={e=>change('endDate',e.currentTarget.value)} /></label>
- <label>Hall<select value={form.hall} onChange={e=>change('hall',e.currentTarget.value)}>{['Hall 1','Hall 2'].map(v=><option key={v}>{v}</option>)}</select></label>
+ <label>Halls to reserve<select value={form.hall} onChange={e=>change('hall',e.currentTarget.value)}>{bookingHallOptions.map(v=><option key={v}>{v}</option>)}</select><span>All selected halls are reserved for the same start and end time.</span></label>
  <label>Event<select value={form.event} onChange={e=>change('event',e.currentTarget.value)}>{['Barat','Walima','Mehndi','Nikkah','Corporate','Other'].map(v=><option key={v}>{v}</option>)}</select></label>
  <label>Status<select value={form.status} onChange={e=>change('status',e.currentTarget.value)}>{['Hold','Confirmed','Completed'].map(v=><option key={v}>{v}</option>)}</select></label>
  {form.status==='Hold'&&<label>Hold expiry (Pakistan time)<input required type="datetime-local" value={form.holdUntil?new Date(Date.parse(form.holdUntil)+5*3600000).toISOString().slice(0,16):''} onInput={e=>change('holdUntil',e.currentTarget.value?new Date(e.currentTarget.value+':00+05:00').toISOString():null)} /></label>}
