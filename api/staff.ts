@@ -2,7 +2,7 @@ import { expenseSheet,addExpenseRow,removeExpenseRow,inventoryRegister,addInvent
 import { z } from 'zod';
 import { requestUrl, type RuntimeRequest } from '../server/auth.js';
 import { actorFor, staffLogin, staffLogout, users, saveUser } from '../server/staff-auth.js';
-import { employeeData, saveEmployee, saveAttendance, recordEmployeePayment, voidEmployeePayment } from '../server/employees.js';
+import { attendanceData, employeeData, saveEmployee, saveAttendance, recordEmployeePayment, voidEmployeePayment } from '../server/employees.js';
 import { body, json, failure, deliver, type NodeResponse } from '../server/http.js';
 import { expenseFiles, saveFile, downloadFile } from '../server/attachments.js';
 import { dailyReport } from '../server/reports.js';
@@ -15,7 +15,7 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(request.method==='POST'&&resource==='login'){const result=await staffLogin(request,await body(request));const response=json(result.actor);response.headers.set('Set-Cookie',result.cookie);return response;}
  if(request.method==='POST'&&resource==='logout'){await body(request);const response=json({ok:true});response.headers.set('Set-Cookie',await staffLogout(request));return response;}
  const actor=await actorFor(request);if(!actor)return json({error:'Sign in to the staff portal.'},401);
- if(actor.role==='Accountant'&&!['session','expense-sheet','inventory-register'].includes(resource))return json({error:'Accountant access is limited to the expense sheet and inventory.'},403);
+ if(actor.role==='Accountant'&&!['session','expense-sheet','inventory-register','attendance'].includes(resource))return json({error:'Accountant access is limited to the expense sheet, inventory and attendance.'},403);
  if(request.method!=='GET'&&actor.role==='Director')return json({error:'Director access is monitoring only.'},403);
  if(request.method==='GET'){
   if(resource==='expense-sheet')return json(await expenseSheet(actor,requestUrl(request).searchParams.get('date')));
@@ -23,6 +23,7 @@ export async function handleStaff(request:RuntimeRequest){try{
   if(resource==='monthly-summary')return json(await monthlySummary(actor,requestUrl(request).searchParams.get('month')));
   if(resource==='session')return json(actor);
   if(resource==='users')return json(await users(actor));
+  if(resource==='attendance')return json(await attendanceData(actor));
   if(resource==='employees')return json(await employeeData(actor));
   if(resource==='inventory')return json(await inventoryData(actor));
   if(resource==='rentals')return json(await rentalData(actor));

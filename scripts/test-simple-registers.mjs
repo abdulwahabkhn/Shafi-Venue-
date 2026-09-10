@@ -95,5 +95,15 @@ try{
  accountantStock=await throughClient('Accountant','inventory-register');
  ok(accountantStock.items.find(i=>i.id===accountantItem).archived&&accountantStock.history.some(m=>m.id===accountantDamage&&m.actor===accountant.name),'Accountant replacement and removal preserve attributed history');
  await deny(reg.inventoryAction(gm,randomUUID(),{...opening,action:'Add quantity'}),'Other stock actions reject zero quantity');
+ const attendanceEntry={employeeId,date:day,status:'Present',note:'Accountant attendance'};
+ const marked=await throughClient('Accountant','attendance',{id:randomUUID(),entry:attendanceEntry});
+ ok(marked.status==='Present'&&marked.actor===accountant.name,'Accountant can mark attendance');
+ const corrected=await throughClient('Accountant','attendance',{id:marked.id,version:marked.version,entry:{...attendanceEntry,status:'Absent'}});
+ ok(corrected.status==='Absent'&&corrected.version===marked.version+1,'Accountant can correct attendance');
+ await deny(throughClient('Accountant','attendance',{id:marked.id,version:marked.version,entry:attendanceEntry}),'Stale attendance update rejected');
+ const attendanceOnly=await throughClient('Accountant','attendance');
+ ok(attendanceOnly.employees[0].id===employeeId&&!('salary' in attendanceOnly.employees[0])&&!('payments' in attendanceOnly)&&!('phone' in attendanceOnly.employees[0]),'Attendance lookup excludes payroll and private employee details');
+ for(const resource of ['employees','payment','void-payment','users'])ok((await handleStaff(req('Accountant',resource,{id:randomUUID(),entry:{}}))).status===403,'Accountant cannot write '+resource);
+ ok((await handleStaff(req('Director','attendance',{id:randomUUID(),entry:attendanceEntry}))).status===403,'Director cannot mark attendance');
  console.log(n+' simplified-workflow checks passed.');
 }finally{if(store)await store.bookingPool().end();await vite.close();await root.query(`DROP SCHEMA ${schema} CASCADE`);await root.end();console.log('Removed only isolated simplified test schema.');}

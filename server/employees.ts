@@ -24,6 +24,14 @@ export async function employeeData(actor:Actor):Promise<EmployeeData>{
  actor.role==='Hall manager'?Promise.resolve({rows:[]}):bookingPool().query("SELECT a.id,a.entity,a.action,a.actor,a.created FROM shafi_staff_audit a JOIN shafi_employees e ON e.id::text=a.entity ORDER BY created DESC LIMIT 200")]);
  return {employees:employees.rows.map(r=>actor.role==='Hall manager'?{...r.body,salary:0,phone:'',notes:'',exitReason:''}:r.body),attendance:attendance.rows.map(r=>r.body),payments:payments.rows.map(r=>r.body),audit:audits.rows};
 }
+export async function attendanceData(actor:Actor){
+ requireRole(actor,['GM','Director','Accountant']);
+ const [employees,attendance]=await Promise.all([
+  bookingPool().query("SELECT id,body->>'name' AS name,body->>'sector' AS sector,body->>'title' AS title,body->>'joined' AS joined,body->>'exited' AS exited FROM shafi_employees ORDER BY body->>'name'"),
+  bookingPool().query('SELECT body FROM shafi_attendance ORDER BY day DESC')
+ ]);
+ return {employees:employees.rows,attendance:attendance.rows.map(r=>r.body)};
+}
 export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:number){
  requireRole(actor,['GM']);const input=employeeInput.parse(raw);
  return transaction(async c=>{
@@ -38,7 +46,7 @@ export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:nu
  });
 }
 export async function saveAttendance(actor:Actor,id:string,raw:unknown,version?:number){
- requireRole(actor,['GM']);const input=attendanceInput.parse(raw);
+ requireRole(actor,['GM','Accountant']);const input=attendanceInput.parse(raw);
  return transaction(async c=>{
  const employee=(await c.query('SELECT body FROM shafi_employees WHERE id=$1',[input.employeeId])).rows[0]?.body as Employee|undefined;
  if(!employee||!hallAccess(actor,employee.hall))throw new AccessError('Employee unavailable for your hall.');

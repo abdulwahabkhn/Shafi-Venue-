@@ -1,7 +1,8 @@
 import type { Attendance, Employee } from '../../shared/staff';
 import { pkToday } from '../../shared/staff';
 
-export default function AttendanceList({employees,records,day,busy,canEdit,onDay,onMark,onDetails}:{employees:Employee[];records:Attendance[];day:string;busy:boolean;canEdit:boolean;onDay:(day:string)=>void;onMark:(employee:Employee,status:'Present'|'Absent')=>void;onDetails:(id:string)=>void}){
+export type AttendanceEmployee=Pick<Employee,'id'|'name'|'sector'|'title'|'joined'|'exited'>;
+export default function AttendanceList<T extends AttendanceEmployee>({employees,records,day,busy,canEdit,onDay,onMark,onDetails}:{employees:T[];records:Attendance[];day:string;busy:boolean;canEdit:boolean;onDay:(day:string)=>void;onMark:(employee:T,status:'Present'|'Absent')=>void;onDetails:(id:string)=>void}){
  const byEmployee=new Map(records.filter(a=>a.date===day).map(a=>[a.employeeId,a]));
  const eligible=employees.filter(e=>e.joined<=day&&(!e.exited||e.exited>=day));
  return <section className="ops-panel"><h2>Daily attendance</h2><p>Select Present or Absent to save immediately. Unmarked employees are not counted as absent. Salary is not deducted automatically.</p>

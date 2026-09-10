@@ -4,6 +4,8 @@ Updated: 9 September 2026. This file preserves implementation status independent
 
 ## User decisions
 
+- 10 September: Accountant also records attendance (Present, Absent, Leave, Half day) through a dedicated attendance workspace. Salaries, advances, employee editing and deductions remain GM-only; attendance does not deduct salary automatically.
+
 - 10 September: refund reasons are optional. Preserve transaction history and refund limits; do not submit a refund to the user's live booking during testing.
 
 - Keep the current staff passwords. Do not rotate them without permission.

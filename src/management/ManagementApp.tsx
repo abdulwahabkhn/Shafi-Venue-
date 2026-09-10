@@ -4,6 +4,7 @@ import './management.css';
 import './bookings.css';
 import { StaffAccess, AccountsWorkspace, useActor, logoutStaff } from './StaffAccess';
 
+const AttendanceWorkspace=lazy(()=>import('./AttendanceWorkspace'));
 const LiveOperations=lazy(()=>import('./LiveOperations'));
 const ExpensesWorkspace=lazy(()=>import('./DailyExpenseSheet'));
 const MonthlyDashboard=lazy(()=>import('./MonthlyDashboard'));
@@ -19,7 +20,7 @@ class WorkspaceBoundary extends Component<{children:ReactNode},{failed:boolean}>
  render(){return this.state.failed?<section className="booking-workspace ops-panel"><h1>Unable to open this workspace</h1><p role="alert">Check your connection and reload the portal. Saved records remain available.</p><button className="ops-button ops-button--gold" onClick={()=>window.location.reload()}>Reload portal</button></section>:this.props.children;}
 }
 
-type ViewId='overview'|'bookings'|'calendar'|'inventory'|'rentals'|'expenses'|'reconciliation'|'employees'|'reports'|'accounts'|'website';
+type ViewId='attendance'|'overview'|'bookings'|'calendar'|'inventory'|'rentals'|'expenses'|'reconciliation'|'employees'|'reports'|'accounts'|'website';
 const navItems:{id:ViewId;label:string;icon:typeof LayoutDashboard}[]=[
  {id:'overview',label:'Overview',icon:LayoutDashboard},
  {id:'bookings',label:'Bookings',icon:ClipboardList},
@@ -28,6 +29,7 @@ const navItems:{id:ViewId;label:string;icon:typeof LayoutDashboard}[]=[
 
  {id:'expenses',label:'Expense sheet',icon:ReceiptText},
 
+ {id:'attendance',label:'Attendance',icon:Users},
  {id:'employees',label:'Employees',icon:Users},
  {id:'reports',label:'Reports',icon:FileBarChart},
 ];
@@ -59,7 +61,7 @@ function ManagementShell(){
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
-   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>actor.role!=='Accountant'||['expenses','inventory'].includes(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
+   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>actor.role!=='Accountant'||['expenses','inventory','attendance'].includes(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
    <nav aria-label="Connected tools"><p>Connected tools</p>
     {actor.role==='GM'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}
@@ -75,7 +77,7 @@ function ManagementShell(){
     {view==='overview'&&<MonthlyDashboard/>}{view==='bookings'&&<LiveOperations view="bookings"/>}{view==='calendar'&&<LiveOperations view="calendar"/>}
     {view==='inventory'&&<InventoryWorkspace/>}{view==='expenses'&&<ExpensesWorkspace/>}
 
-    {view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&actor.role!=='Accountant'&&<ReportsWorkspace/>}
+    {view==='attendance'&&<AttendanceWorkspace/>}{view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&actor.role!=='Accountant'&&<ReportsWorkspace/>}
     {view==='accounts'&&actor.role==='GM'&&<AccountsWorkspace/>}{view==='website'&&actor.role==='GM'&&<WebsiteView/>}
    </Suspense></WorkspaceBoundary>
   </main>
