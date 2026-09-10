@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { bookingHallOptions, sharesHall } from './halls.js';
 
+export const bookingAdditionalServices = ['Stage','Floors','Fireworks','Flower machine','Focus lights','Sufi entry','Violin entry','Balloon entry','Ground decor'] as const;
+
 export const bookingInput = z.object({
   customer: z.string().trim().min(2).max(120),
   phone: z.string().trim().regex(/^[+\d ()-]{7,25}$/).refine(v => v.replace(/\D/g, '').length >= 7, 'Enter a valid phone number'),
@@ -14,6 +16,7 @@ export const bookingInput = z.object({
   manager: z.string().trim().max(120),
   notes: z.string().trim().max(4000),
   packageName: z.string().trim().max(160).default(''),
+  additionalServices: z.array(z.enum(bookingAdditionalServices)).max(20).default([]),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   holdUntil: z.string().datetime().nullable().default(null),
   cancellationReason: z.string().trim().max(1000).default(''),
