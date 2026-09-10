@@ -1,5 +1,5 @@
 import { useEffect,useRef,useState,type FormEvent } from 'react';
-import { pkToday } from '../../shared/staff';
+import { effectiveRole, isAccountantLike, permissionEnabled, pkToday } from '../../shared/staff';
 import type { ExpenseSheet } from '../../shared/registers';
 import { useActor } from './StaffAccess';
 import { staffApi } from './staff-api';
@@ -7,7 +7,7 @@ import { money } from './BookingsWorkspace';
 import ExpenseItemField from './ExpenseItemField';
 import { defaultExpenseItems } from '../../shared/expense-items';
 export default function DailyExpenseSheet(){
- const actor=useActor(),editable=actor.role!=='Director';
+ const actor=useActor(),editable=effectiveRole(actor.role)==='GM'||isAccountantLike(actor)&&(permissionEnabled(actor,'expenseAdd')||permissionEnabled(actor,'expenseRemove'));
  const [day,setDay]=useState(pkToday()),[data,setData]=useState<ExpenseSheet>(),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[adding,setAdding]=useState(false),[remove,setRemove]=useState<string|null>(null),[qty,setQty]=useState(1),[price,setPrice]=useState(0);
  const pending=useRef<unknown>(null),loadVersion=useRef(0);
  async function load(){const version=++loadVersion.current;setLoading(true);setError('');setData(undefined);try{const result=await staffApi<ExpenseSheet>('expense-sheet',undefined,{date:day});if(version===loadVersion.current)setData(result);}catch(e){if(version===loadVersion.current)setError((e as Error).message);}finally{if(version===loadVersion.current)setLoading(false);}}

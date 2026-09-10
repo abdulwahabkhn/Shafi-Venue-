@@ -2,7 +2,7 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual, ran
 import { z } from 'zod';
 import { bookingPool } from './postgres-bookings.js';
 import { header, sessionValid, requestUrl, type RuntimeRequest } from './auth.js';
-import { userInput, type Actor, type StaffUser, type AccountantPermissionKey } from '../shared/staff.js';
+import { userInput, effectiveRole, permissionEnabled, type Actor, type StaffUser, type AccountantPermissionKey } from '../shared/staff.js';
 
 const scrypt = (password:string,salt:string,length:number,options:import('node:crypto').ScryptOptions) => new Promise<Buffer>((resolve,reject)=>scryptCallback(password,salt,length,options,(error,key)=>error?reject(error):resolve(key)));
 export const staffSchema = `
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS shafi_staff_audit(id uuid PRIMARY KEY,entity text NOT
 `;
 export class AccessError extends Error { status = 403; }
 export const owner:Actor={id:'owner',name:'Director (owner access)',role:'Director',hall:null};
-export function requireRole(actor:Actor,allowed:Actor['role'][]){if(!allowed.includes(actor.role))throw new AccessError('Your role cannot perform this action.');}
+export function requireRole(actor:Actor,allowed:Actor['role'][]){if(!allowed.includes(effectiveRole(actor.role)))throw new AccessError('Your role cannot perform this action.');}
 export function hallAccess(actor:Actor,hall:string|null){return actor.role!=='Hall manager'||actor.hall===hall;}
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 function token(request:RuntimeRequest){return header(request,'cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith('shafi_staff='))?.slice(12);}
@@ -58,4 +58,6 @@ export async function saveUser(actor:Actor,id:string,raw:unknown){
  return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions};
 }
 
-export function hasPermission(actor:Actor,key:AccountantPermissionKey){if(actor.role!=='Accountant')return true;const p=actor.permissions||{};if(key in p)return !!p[key];return ['expenseView','expenseAdd','expenseRemove','inventoryView','inventoryAdd','inventoryRemove','inventoryDamage','inventoryReplace','attendanceView','attendanceEdit','employeeView'].includes(key);}
+export function hasPermission(actor:Actor,key:AccountantPermissionKey){
+ return permissionEnabled(actor,key);
+}

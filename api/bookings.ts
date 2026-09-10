@@ -3,15 +3,16 @@ import { header, requestUrl, sameOrigin, sessionValid, type RuntimeRequest } fro
 import { listBookings, bookingHistory, saveBooking, recordPayment } from '../server/postgres-bookings.js';
 import { listExpenses, saveExpense, voidExpense, reviewExpense, acknowledgeCashIssue } from '../server/expenses.js';
 import { actorFor, hallAccess, requireRole, AccessError, hasPermission } from '../server/staff-auth.js';
+import { effectiveRole, isAccountantLike } from '../shared/staff.js';
 const send=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function handleBookings(request:RuntimeRequest):Promise<Response>{
  try{
   const actor=await actorFor(request);
   if(!actor)return send({error:'Sign in to access bookings.'},401);
   if(actor.role==='Hall manager')return send({error:'Booking access is unavailable for this role.'},403);
-  const accountant=actor.role==='Accountant';
-  if(accountant&&!actor.permissions?.booking)return send({error:'Your Accountant account has no booking access.'},403);
-  if(request.method!=='GET'&&actor.role!=='GM'&&!accountant)return send({error:'Only GM can change operational records.'},403);
+  const accountant=isAccountantLike(actor),role=effectiveRole(actor.role);
+  if(accountant&&!hasPermission(actor,'booking'))return send({error:'Booking access is not enabled for this account.'},403);
+  if(request.method!=='GET'&&role!=='GM'&&!accountant)return send({error:'Only GM can change operational records.'},403);
   if(!process.env.DATABASE_URL)return send({error:'Private booking database setup is still in progress.'},503);
   const url=requestUrl(request);
   const expenses=url.searchParams.get('resource')==='expenses';
@@ -35,7 +36,7 @@ export async function handleBookings(request:RuntimeRequest):Promise<Response>{
   }
   const existing=(await listBookings()).find(b=>b.id===id);
   if(existing&&!hallAccess(actor,existing.hall))throw new AccessError('Booking unavailable for your hall.');
-  if(data.action==='payment'){if(accountant&&!actor.permissions?.bookingReceipt&&!actor.permissions?.bookingRefund)return send({error:'Your account has no receipt or refund access.'},403);const kind=data.payment?.kind;if(accountant&&kind==='Refund'&&!actor.permissions?.bookingRefund)return send({error:'Refund access is not enabled for this account.'},403);if(accountant&&kind!=='Refund'&&!actor.permissions?.bookingReceipt)return send({error:'Receipt access is not enabled for this account.'},403);if(!accountant)requireRole(actor,['GM']);return send(await recordPayment(id,data.payment,actor.name));}
+  if(data.action==='payment'){if(accountant&&!hasPermission(actor,'bookingReceipt')&&!hasPermission(actor,'bookingRefund'))return send({error:'Your account has no receipt or refund access.'},403);const kind=data.payment?.kind;if(accountant&&kind==='Refund'&&!hasPermission(actor,'bookingRefund'))return send({error:'Refund access is not enabled for this account.'},403);if(accountant&&kind!=='Refund'&&!hasPermission(actor,'bookingReceipt'))return send({error:'Receipt access is not enabled for this account.'},403);if(!accountant)requireRole(actor,['GM']);return send(await recordPayment(id,data.payment,actor.name));}
   if(data.action!=='save')return send({error:'Unknown booking action.'},400);
   const version=data.version===undefined?undefined:z.number().int().positive().parse(data.version);
   if(!accountant)requireRole(actor,['GM']);

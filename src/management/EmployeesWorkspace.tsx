@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { employeeInput, pkToday, sectors, halls, type Employee, type EmployeeData, type EmployeePayment } from '../../shared/staff';
+import { effectiveRole, employeeInput, isAccountantLike, permissionEnabled, pkToday, sectors, halls, type Employee, type EmployeeData, type EmployeePayment } from '../../shared/staff';
 import { staffApi } from './staff-api';
 import { useActor } from './StaffAccess';
 import { money } from './BookingsWorkspace';
@@ -12,7 +12,7 @@ import type { Attendance } from '../../shared/staff';
 const blank=()=>({name:'',phone:'',sector:'Office',title:'',hall:null,employment:'Permanent',joined:pkToday(),status:'Active',exited:null,exitReason:'',salary:0,salaryEffective:pkToday(),notes:''} as const);
 type EmployeeForm=ReturnType<typeof employeeInput.parse>;
 export default function EmployeesWorkspace(){
- const actor=useActor(),accountant=actor.role==='Accountant',canEdit=actor.role==='GM'||(accountant&&!!(actor.permissions?.employeeAdd||actor.permissions?.employeeRemove)),canPay=actor.role==='GM'||(accountant&&!!(actor.permissions?.employeeSalary||actor.permissions?.employeeAdvance));
+ const actor=useActor(),accountant=isAccountantLike(actor),canEdit=effectiveRole(actor.role)==='GM'||(accountant&&(permissionEnabled(actor,'employeeAdd')||permissionEnabled(actor,'employeeRemove'))),canPay=effectiveRole(actor.role)==='GM'||(accountant&&(permissionEnabled(actor,'employeeSalary')||permissionEnabled(actor,'employeeAdvance')));
  const [data,setData]=useState<EmployeeData>({employees:[],attendance:[],payments:[],audit:[]}),[bookings,setBookings]=useState<Booking[]>([]);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [view,setView]=useState<'Directory'|'Attendance'|'Salary & advances'>('Directory'),[query,setQuery]=useState(''),[month,setMonth]=useState(pkToday().slice(0,7));
@@ -20,7 +20,7 @@ export default function EmployeesWorkspace(){
  const [payEmployee,setPayEmployee]=useState<Employee|null>(null),[kind,setKind]=useState<EmployeePayment['kind']>('Salary'),[voidId,setVoidId]=useState<string|null>(null);
  const [attendanceEmployee,setAttendanceEmployee]=useState(''),[day,setDay]=useState(pkToday());
  const key=useRef(crypto.randomUUID()),paymentKey=useRef(crypto.randomUUID()),paymentPending=useRef<unknown>(null);
- async function load(){try{const [records,events]=await Promise.all([staffApi<EmployeeData>('employees'),actor.role==='Accountant'?Promise.resolve([] as Booking[]):bookingApi()]);setData(records);setBookings(events);}catch(e){setError((e as Error).message);}finally{setLoading(false);}}
+ async function load(){try{const [records,events]=await Promise.all([staffApi<EmployeeData>('employees'),accountant?Promise.resolve([] as Booking[]):bookingApi()]);setData(records);setBookings(events);}catch(e){setError((e as Error).message);}finally{setLoading(false);}}
  useEffect(()=>{void load();},[]);
  const dirty=!!form&&JSON.stringify(form)!==JSON.stringify(selected||blank());
  useEffect(()=>{const guard=(e:Event)=>{if(busy||((dirty||payEmployee)&&!window.confirm('Discard unsaved employee changes?')))e.preventDefault();};const unload=(e:BeforeUnloadEvent)=>{if(dirty||payEmployee){e.preventDefault();e.returnValue='';}};window.addEventListener('operations:navigate',guard);window.addEventListener('beforeunload',unload);return()=>{window.removeEventListener('operations:navigate',guard);window.removeEventListener('beforeunload',unload);};},[dirty,payEmployee,busy]);

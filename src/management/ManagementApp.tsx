@@ -3,6 +3,7 @@ import { ArrowRight, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
 import './management.css';
 import './bookings.css';
 import { StaffAccess, AccountsWorkspace, useActor, logoutStaff } from './StaffAccess';
+import { isAccountantLike } from '../../shared/staff';
 
 const AttendanceWorkspace=lazy(()=>import('./AttendanceWorkspace'));
 const LiveOperations=lazy(()=>import('./LiveOperations'));
@@ -44,7 +45,8 @@ function WebsiteView(){
 export default function ManagementApp(){return <StaffAccess><ManagementShell/></StaffAccess>;}
 function ManagementShell(){
  const actor=useActor();
- const [view,setView]=useState<ViewId>(actor.role==='Accountant'?'expenses':'overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
+ const limited=isAccountantLike(actor);
+ const [view,setView]=useState<ViewId>(limited?'expenses':'overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
  useEffect(()=>{document.title='Venue operations | Shafi Complex & Marquee';},[]);
  useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),5000);return()=>window.clearTimeout(timer);},[toast]);
  useEffect(()=>{if(!mobileNav)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMobileNav(false);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[mobileNav]);
@@ -61,7 +63,7 @@ function ManagementShell(){
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
-   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>actor.role!=='Accountant'||['expenses','inventory','attendance','employees'].includes(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
+   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>!limited||['expenses','inventory','attendance','employees'].includes(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
    <nav aria-label="Connected tools"><p>Connected tools</p>
     {actor.role==='GM'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}

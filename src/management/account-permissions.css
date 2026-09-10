@@ -6,3 +6,4 @@
 .permission-group label { display: flex; align-items: center; gap: .55rem; min-height: 2.25rem; cursor: pointer; }
 .permission-group input[type="checkbox"] { width: 1.2rem; height: 1.2rem; flex: 0 0 1.2rem; accent-color: var(--ops-gold, #d2a34d); }
 .permission-all { font-weight: 600; }
+.field-hint { display: block; margin-top: .45rem; color: var(--ops-ink-soft, #4b554f); font-size: .88rem; line-height: 1.45; }

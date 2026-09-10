@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { pkToday, type Attendance } from '../../shared/staff';
+import { effectiveRole, isAccountantLike, permissionEnabled, pkToday, type Attendance } from '../../shared/staff';
 import AttendanceList, { type AttendanceEmployee } from './AttendanceList';
 import { staffApi } from './staff-api';
 import { useActor } from './StaffAccess';
 
 type Records={employees:AttendanceEmployee[];attendance:Attendance[]};
 export default function AttendanceWorkspace(){
- const editable=['GM','Accountant'].includes(useActor().role);
+ const actor=useActor();
+ const editable=effectiveRole(actor.role)==='GM'||isAccountantLike(actor)&&permissionEnabled(actor,'attendanceEdit');
  const [data,setData]=useState<Records>({employees:[],attendance:[]}),[day,setDay]=useState(pkToday()),[selected,setSelected]=useState('');
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const lock=useRef(false);
