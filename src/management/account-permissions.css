@@ -1,0 +1,8 @@
+.account-permissions { margin-top: 1.25rem; padding: 1.1rem; border: 1px solid var(--ops-rule, #b7ad9a); background: color-mix(in srgb, var(--ops-paper, #f3ead9) 72%, transparent); }
+.account-permissions > strong { display: block; font-size: 1.05rem; margin-bottom: .25rem; }
+.account-permissions > p { margin: 0 0 .9rem; color: var(--ops-ink-soft, #4b554f); }
+.permission-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .55rem .9rem; margin: .85rem 0 0; padding: .85rem; border: 1px solid color-mix(in srgb, var(--ops-rule, #b7ad9a) 70%, transparent); }
+.permission-group legend { padding: 0 .35rem; font-weight: 600; }
+.permission-group label { display: flex; align-items: center; gap: .55rem; min-height: 2.25rem; cursor: pointer; }
+.permission-group input[type="checkbox"] { width: 1.2rem; height: 1.2rem; flex: 0 0 1.2rem; accent-color: var(--ops-gold, #d2a34d); }
+.permission-all { font-weight: 600; }

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { header, requestUrl, sameOrigin, sessionValid, type RuntimeRequest } from '../server/auth.js';
 import { listBookings, bookingHistory, saveBooking, recordPayment } from '../server/postgres-bookings.js';
 import { listExpenses, saveExpense, voidExpense, reviewExpense, acknowledgeCashIssue } from '../server/expenses.js';
-import { actorFor, hallAccess, requireRole, AccessError } from '../server/staff-auth.js';
+import { actorFor, hallAccess, requireRole, AccessError, hasPermission } from '../server/staff-auth.js';
 const send=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export async function handleBookings(request:RuntimeRequest):Promise<Response>{
  try{

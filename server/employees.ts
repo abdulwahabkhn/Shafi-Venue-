@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { PoolClient } from 'pg';
 import { bookingPool } from './postgres-bookings.js';
 import { attendanceInput, employeeInput, employeePaymentInput, pkToday, type Actor, type Employee, type EmployeeData, type EmployeePayment } from '../shared/staff.js';
-import { hallAccess, requireRole, AccessError } from './staff-auth.js';
+import { hallAccess, requireRole, AccessError, hasPermission } from './staff-auth.js';
 
 export const employeeSchema=`
 CREATE TABLE IF NOT EXISTS shafi_employees(id uuid PRIMARY KEY,body jsonb NOT NULL);
@@ -32,8 +32,13 @@ export async function attendanceData(actor:Actor){
  ]);
  return {employees:employees.rows,attendance:attendance.rows.map(r=>r.body)};
 }
+export async function employeeDirectory(actor:Actor):Promise<EmployeeData>{
+ requireRole(actor,['GM','Director','Accountant']);
+ const rows=(await bookingPool().query("SELECT body FROM shafi_employees ORDER BY body->>'name'")).rows;
+ return {employees:rows.map(r=>({...r.body,salary:0,phone:'',notes:'',exitReason:''})),attendance:[],payments:[],audit:[]};
+}
 export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:number){
- requireRole(actor,['GM']);const input=employeeInput.parse(raw);
+ requireRole(actor,['GM','Accountant']);if(actor.role==='Accountant'&&!hasPermission(actor,'employeeAdd')&&!hasPermission(actor,'employeeRemove'))throw new AccessError('Employee editing is not enabled for this account.');const input=employeeInput.parse(raw);
  return transaction(async c=>{
  const existing=(await c.query('SELECT body FROM shafi_employees WHERE id=$1',[id])).rows[0]?.body as Employee|undefined;
  if(existing&&version===undefined){if(Object.entries(input).every(([k,v])=>existing[k as keyof Employee]===v))return existing;throw new Error('This employee already exists. Reload before editing.');}

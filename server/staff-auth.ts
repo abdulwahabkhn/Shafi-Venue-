@@ -2,7 +2,7 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual, ran
 import { z } from 'zod';
 import { bookingPool } from './postgres-bookings.js';
 import { header, sessionValid, requestUrl, type RuntimeRequest } from './auth.js';
-import { userInput, type Actor, type StaffUser } from '../shared/staff.js';
+import { userInput, type Actor, type StaffUser, type AccountantPermissionKey } from '../shared/staff.js';
 
 const scrypt = (password:string,salt:string,length:number,options:import('node:crypto').ScryptOptions) => new Promise<Buffer>((resolve,reject)=>scryptCallback(password,salt,length,options,(error,key)=>error?reject(error):resolve(key)));
 export const staffSchema = `
@@ -57,3 +57,5 @@ export async function saveUser(actor:Actor,id:string,raw:unknown){
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions};
 }
+
+export function hasPermission(actor:Actor,key:AccountantPermissionKey){if(actor.role!=='Accountant')return true;const p=actor.permissions||{};if(key in p)return !!p[key];return ['expenseView','expenseAdd','expenseRemove','inventoryView','inventoryAdd','inventoryRemove','inventoryDamage','inventoryReplace','attendanceView','attendanceEdit','employeeView'].includes(key);}
