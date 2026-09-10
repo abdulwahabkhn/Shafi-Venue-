@@ -42,7 +42,7 @@ export async function staffLogin(request:RuntimeRequest,raw:unknown){
 }
 export function staffCookie(request:RuntimeRequest,value=''){return `shafi_staff=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${value?28800:0}${requestUrl(request).protocol==='https:'?'; Secure':''}`;}
 export async function staffLogout(request:RuntimeRequest){const value=token(request);if(value)await bookingPool().query('DELETE FROM shafi_sessions WHERE token_hash=$1',[hash(value)]);return staffCookie(request);}
-export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);return (await bookingPool().query('SELECT id,name,username,role,hall,active,permissions FROM shafi_users ORDER BY name')).rows;}
+export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);const rows=(await bookingPool().query('SELECT id,name,username,role,hall,active,permissions FROM shafi_users ORDER BY name')).rows;return rows.map(r=>r.role==='Accountant'?{...r,permissions:{expenseView:true,expenseAdd:true,expenseRemove:true,inventoryView:true,inventoryAdd:true,inventoryRemove:true,inventoryDamage:true,inventoryReplace:true,attendanceView:true,attendanceEdit:true,employeeView:true,...(r.permissions||{})}}:r);}
 export async function saveUser(actor:Actor,id:string,raw:unknown){
  requireRole(actor,['GM']);const input=userInput.parse(raw);
  if(input.role==='Hall manager')throw new AccessError('Hall Manager portals are no longer supported.');
