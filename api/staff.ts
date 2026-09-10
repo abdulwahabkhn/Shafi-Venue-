@@ -15,7 +15,7 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(request.method==='POST'&&resource==='login'){const result=await staffLogin(request,await body(request));const response=json(result.actor);response.headers.set('Set-Cookie',result.cookie);return response;}
  if(request.method==='POST'&&resource==='logout'){await body(request);const response=json({ok:true});response.headers.set('Set-Cookie',await staffLogout(request));return response;}
  const actor=await actorFor(request);if(!actor)return json({error:'Sign in to the staff portal.'},401);
- if(actor.role==='Accountant'&&!['session','expense-sheet'].includes(resource))return json({error:'Accountant access is limited to the expense sheet.'},403);
+ if(actor.role==='Accountant'&&!['session','expense-sheet','inventory-register'].includes(resource))return json({error:'Accountant access is limited to the expense sheet and inventory.'},403);
  if(request.method!=='GET'&&actor.role==='Director')return json({error:'Director access is monitoring only.'},403);
  if(request.method==='GET'){
   if(resource==='expense-sheet')return json(await expenseSheet(actor,requestUrl(request).searchParams.get('date')));

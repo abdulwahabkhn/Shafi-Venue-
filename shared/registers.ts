@@ -9,6 +9,6 @@ export const simpleItemInput=z.object({name:z.string().trim().min(2).max(160),qu
 export const itemActionInput=z.object({itemId:z.string().uuid(),action:z.enum(['Damaged','Replaced','Remove quantity','Archive','Add quantity','Write off damage','Set opening count']),quantity:z.number().int().min(0).max(1000000),bookingId:z.string().uuid().nullable().default(null),sourceId:z.string().uuid().nullable().default(null),note:z.string().trim().min(3).max(1000)}).refine(v=>v.action==='Set opening count'||v.quantity>0,'Quantity must be positive');
 export type InventoryRow={id:string;name:string;category:string;notes?:string;quantityPending:boolean;unit:string;available:number;damaged:number;issued:number;missing:number;archived:boolean};
 export type InventoryEvent={id:string;itemId:string;kind:string;quantity:number;date:string;note:string;bookingReference:string;bookingId:string|null;sourceId:string|null;actor:string};
-export type InventoryRegister={items:InventoryRow[];history:InventoryEvent[]};
+export type InventoryRegister={items:InventoryRow[];history:InventoryEvent[];bookings?:{id:string;reference:string;customer:string;date:string}[]};
 export type MonthSummary={month:string;previousMonth:string;receipts:number;refunds:number;netReceipts:number;expenses:number;previousExpenses:number;changePercent:number|null;bookings:number;leaves:{id:string;name:string;leaves:number;excess:number}[]};
 export const sheetDate=dateInput;

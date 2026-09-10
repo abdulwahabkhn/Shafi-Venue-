@@ -26,7 +26,7 @@ try{
  const throughClient=async(role,resource,data,params)=>{const realFetch=globalThis.fetch;try{globalThis.fetch=async(path,options)=>handleStaff(new Request(origin+path,{...options,headers:{...options?.headers,origin,...(role?{cookie:cookies[role]}:{})}}));return await staffApi(resource,data,params);}finally{globalThis.fetch=realFetch;}};
  ok((await throughClient(null,'login',{username:gm.id,password})).role==='GM','Frontend login request reaches staff authentication');
  ok((await throughClient('Director','session')).role==='Director','Frontend session request reaches selected actor');
- for(const resource of ['employees','inventory-register','monthly-summary','users','report','rentals','cash-reconciliation'])ok((await handleStaff(req('Accountant',resource))).status===403,'Accountant denied '+resource);
+ for(const resource of ['employees','monthly-summary','users','report','rentals','cash-reconciliation'])ok((await handleStaff(req('Accountant',resource))).status===403,'Accountant denied '+resource);
  ok((await handleBookings(new Request(origin+'/api/bookings',{headers:{cookie:cookies.Accountant}}))).status===403,'Accountant cannot read bookings');
  for(const resource of ['employees','payment','users','inventory-register','expense-sheet'])ok((await handleStaff(req('Director',resource,{id:randomUUID(),entry:{}}))).status===403,'Director write denied '+resource);
  const day=pkToday(),month=day.slice(0,7),expenseId=randomUUID(),expense={name:'Tissue boxes',purpose:'Daily supplies',quantity:5,price:200,method:'Cash'};
@@ -55,7 +55,7 @@ try{
  const refundHistory=await store.bookingHistory(bookingId);
  ok(refundHistory.payments.filter(p=>p.kind==='Refund').length===1&&refundHistory.payments.find(p=>p.kind==='Refund').reason===''&&refundHistory.audit.some(a=>a.action.includes('Refund: PKR 1000')),'Optional-reason refund retains payment and audit history');
  await deny(store.recordPayment(bookingId,{...optionalRefund,key:randomUUID(),amount:2001}),'Reason-optional refund cannot exceed money received');
- const itemId=randomUUID();await reg.addInventoryItem(gm,itemId,{name:'Chairs',quantity:100,unit:'pieces'});await reg.addInventoryItem(gm,itemId,{name:'Chairs',quantity:100,unit:'pieces'});await deny(reg.addInventoryItem(accountant,randomUUID(),{name:'No permission',quantity:1}),'Accountant inventory write denied');
+ const itemId=randomUUID();await reg.addInventoryItem(gm,itemId,{name:'Chairs',quantity:100,unit:'pieces'});await reg.addInventoryItem(gm,itemId,{name:'Chairs',quantity:100,unit:'pieces'});await deny(reg.addInventoryItem(director,randomUUID(),{name:'No permission',quantity:1}),'Director inventory write denied');
  const damageId=randomUUID(),damage={itemId,action:'Damaged',quantity:5,bookingId,sourceId:null,note:'Event damage'};await reg.inventoryAction(gm,damageId,damage);await reg.inventoryAction(gm,damageId,damage);let stock=await reg.inventoryRegister(gm);ok(stock.items[0].available===95&&stock.items[0].damaged===5,'Damage deducts usable and retries once');
  await deny(reg.inventoryAction(gm,randomUUID(),{...damage,quantity:200}),'Cannot damage more stock than available');await deny(reg.inventoryAction(gm,randomUUID(),{...damage,action:'Archive'}),'Unresolved damage prevents item archive');
  await reg.inventoryAction(gm,randomUUID(),{...damage,action:'Replaced',sourceId:damageId,quantity:3});await reg.inventoryAction(gm,randomUUID(),{...damage,action:'Write off damage',sourceId:damageId,quantity:2});stock=await reg.inventoryRegister(gm);ok(stock.items[0].available===98&&stock.items[0].damaged===0,'Replacement and write-off reconcile damage');await deny(reg.inventoryAction(gm,randomUUID(),{...damage,action:'Replaced',sourceId:damageId,quantity:1}),'Over-replacement denied');
@@ -81,7 +81,19 @@ try{
  catalogRow=(await reg.inventoryRegister(gm)).items.find(i=>i.id===uncounted);
  ok(!catalogRow.quantityPending&&catalogRow.available===0,'Zero is a valid confirmed count and retry is idempotent');
  await deny(reg.inventoryAction(gm,randomUUID(),{...opening,quantity:20}),'Opening count cannot reset existing stock');
- await deny(reg.inventoryAction(accountant,randomUUID(),opening),'Accountant cannot set stock count');
+ await deny(reg.inventoryAction(director,randomUUID(),opening),'Director cannot set stock count');
+ const accountantItem=randomUUID();
+ await throughClient('Accountant','inventory-register',{id:accountantItem,action:'add',entry:{name:'Accountant chairs',quantity:null}});
+ await throughClient('Accountant','inventory-register',{id:randomUUID(),action:'action',entry:{itemId:accountantItem,action:'Set opening count',quantity:10,note:'Counted stock'}});
+ const accountantDamage=randomUUID();
+ await throughClient('Accountant','inventory-register',{id:accountantDamage,action:'action',entry:{itemId:accountantItem,action:'Damaged',quantity:2,bookingId,note:'Event damage'}});
+ let accountantStock=await throughClient('Accountant','inventory-register');
+ ok(accountantStock.items.find(i=>i.id===accountantItem).available===8,'Accountant can add, count and damage inventory through API');
+ ok(accountantStock.bookings.some(b=>b.id===bookingId)&&accountantStock.bookings.every(b=>Object.keys(b).sort().join(',')==='customer,date,id,reference'),'Inventory booking lookup exposes only identifying fields');
+ await throughClient('Accountant','inventory-register',{id:randomUUID(),action:'action',entry:{itemId:accountantItem,action:'Replaced',quantity:2,sourceId:accountantDamage,bookingId,note:'Items replaced'}});
+ await throughClient('Accountant','inventory-register',{id:randomUUID(),action:'action',entry:{itemId:accountantItem,action:'Archive',quantity:1,note:'Remove test item'}});
+ accountantStock=await throughClient('Accountant','inventory-register');
+ ok(accountantStock.items.find(i=>i.id===accountantItem).archived&&accountantStock.history.some(m=>m.id===accountantDamage&&m.actor===accountant.name),'Accountant replacement and removal preserve attributed history');
  await deny(reg.inventoryAction(gm,randomUUID(),{...opening,action:'Add quantity'}),'Other stock actions reject zero quantity');
  console.log(n+' simplified-workflow checks passed.');
 }finally{if(store)await store.bookingPool().end();await vite.close();await root.query(`DROP SCHEMA ${schema} CASCADE`);await root.end();console.log('Removed only isolated simplified test schema.');}

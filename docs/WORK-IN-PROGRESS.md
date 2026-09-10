@@ -9,7 +9,7 @@ Updated: 9 September 2026. This file preserves implementation status independent
 - Keep the current staff passwords. Do not rotate them without permission.
 - Keep the web portal operational alongside the Windows desktop app.
 - Desktop uses the same live accounts and records and requires internet.
-- GM has full control, Director monitors, Accountant uses the expense sheet.
+- GM has full control, Director monitors, Accountant uses the expense sheet and inventory (10 September update). Accountant can manage stock and damage records; booking lookup includes only identifying fields, not financial details. Bookings, employees, reports and account administration remain restricted.
 - Three physical halls; all seven single/pair/all-hall combinations reserve their members atomically.
 - User will install and test after preparation. Do not install into their normal Windows environment on their behalf.
 
