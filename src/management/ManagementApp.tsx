@@ -3,7 +3,7 @@ import { ArrowRight, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
 import './management.css';
 import './bookings.css';
 import { StaffAccess, AccountsWorkspace, useActor, logoutStaff } from './StaffAccess';
-import { isAccountantLike } from '../../shared/staff';
+import { isAccountantLike, permissionEnabled } from '../../shared/staff';
 
 const AttendanceWorkspace=lazy(()=>import('./AttendanceWorkspace'));
 const LiveOperations=lazy(()=>import('./LiveOperations'));
@@ -46,7 +46,9 @@ export default function ManagementApp(){return <StaffAccess><ManagementShell/></
 function ManagementShell(){
  const actor=useActor();
  const limited=isAccountantLike(actor);
- const [view,setView]=useState<ViewId>(limited?'expenses':'overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
+ const limitedNavAccess=(id:ViewId)=>id==='bookings'||id==='calendar'?permissionEnabled(actor,'booking'):id==='inventory'?permissionEnabled(actor,'inventoryView'):id==='expenses'?permissionEnabled(actor,'expenseView'):id==='attendance'?permissionEnabled(actor,'attendanceView'):id==='employees'?permissionEnabled(actor,'employeeView'):id==='reports'?permissionEnabled(actor,'reportsView'):false;
+ const firstLimitedView=(['expenses','inventory','attendance','employees','bookings','calendar','reports'] as ViewId[]).find(limitedNavAccess)||'expenses';
+ const [view,setView]=useState<ViewId>(limited?firstLimitedView:'overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
  useEffect(()=>{document.title='Venue operations | Shafi Complex & Marquee';},[]);
  useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),5000);return()=>window.clearTimeout(timer);},[toast]);
  useEffect(()=>{if(!mobileNav)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMobileNav(false);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[mobileNav]);
@@ -63,7 +65,7 @@ function ManagementShell(){
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
-   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>!limited||['expenses','inventory','attendance','employees'].includes(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
+   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>!limited||limitedNavAccess(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
    <nav aria-label="Connected tools"><p>Connected tools</p>
     {actor.role==='GM'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}
@@ -79,7 +81,7 @@ function ManagementShell(){
     {view==='overview'&&<MonthlyDashboard/>}{view==='bookings'&&<LiveOperations view="bookings"/>}{view==='calendar'&&<LiveOperations view="calendar"/>}
     {view==='inventory'&&<InventoryWorkspace/>}{view==='expenses'&&<ExpensesWorkspace/>}
 
-    {view==='attendance'&&<AttendanceWorkspace/>}{view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&actor.role!=='Accountant'&&<ReportsWorkspace/>}
+    {view==='attendance'&&<AttendanceWorkspace/>}{view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&(!limited||permissionEnabled(actor,'reportsView'))&&<ReportsWorkspace/>}
     {view==='accounts'&&actor.role==='GM'&&<AccountsWorkspace/>}{view==='website'&&actor.role==='GM'&&<WebsiteView/>}
    </Suspense></WorkspaceBoundary>
   </main>

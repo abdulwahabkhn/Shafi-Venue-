@@ -25,7 +25,7 @@ export async function inventoryAction(actor:Actor,id:string,raw:unknown){require
  if(input.action==='Archive'){if(totals.issued||totals.damaged||totals.missing)throw Error('Resolve issued, damaged and missing items before removing the item.');item.archived=true;item.archivedBy=actor.name;item.archivedAt=new Date().toISOString();await c.query('UPDATE shafi_stock_items SET body=$2 WHERE id=$1',[item.id,JSON.stringify(item)]);kind='Register archive';}
  const movement=await appendMovement(c,actor,item.id,{kind,quantity:input.action==='Archive'?totals.available:input.quantity,note:input.note,bookingId:input.bookingId,sourceId:input.sourceId},id,item.name,bookingReference);const result={...movement,request:input};await c.query('UPDATE shafi_stock_movements SET body=$2 WHERE id=$1',[id,JSON.stringify(result)]);return result;});}
 export async function monthlySummary(actor:Actor,raw:string|null):Promise<MonthSummary>{
- requireRole(actor,['GM','Director']);
+ requireRole(actor,['GM','Director','Accountant']);
  const month=monthInput.parse(raw||pkToday().slice(0,7));
  const date=new Date(month+'-01T00:00:00Z'); date.setUTCMonth(date.getUTCMonth()-1);
  const previousMonth=date.toISOString().slice(0,7);

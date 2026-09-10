@@ -17,12 +17,12 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(request.method==='POST'&&resource==='logout'){await body(request);const response=json({ok:true});response.headers.set('Set-Cookie',await staffLogout(request));return response;}
  const actor=await actorFor(request);if(!actor)return json({error:'Sign in to the staff portal.'},401);
  const limited=isAccountantLike(actor),role=effectiveRole(actor.role);
- if(limited&&!['session','expense-sheet','inventory-register','attendance','employees'].includes(resource))return json({error:'This account is limited to the modules enabled for its role.'},403);
+ if(limited&&!['session','expense-sheet','inventory-register','attendance','employees','report','monthly-summary'].includes(resource))return json({error:'This account is limited to the modules enabled for its role.'},403);
  if(request.method!=='GET'&&role==='Director')return json({error:'Director access is monitoring only.'},403);
  if(request.method==='GET'){
   if(resource==='expense-sheet'){if(limited&&!hasPermission(actor,'expenseView'))return json({error:'Expense viewing is not enabled for this account.'},403);return json(await expenseSheet(actor,requestUrl(request).searchParams.get('date')));}
   if(resource==='inventory-register'){if(limited&&!hasPermission(actor,'inventoryView'))return json({error:'Inventory viewing is not enabled for this account.'},403);return json(await inventoryRegister(actor));}
-  if(resource==='monthly-summary')return json(await monthlySummary(actor,requestUrl(request).searchParams.get('month')));
+  if(resource==='monthly-summary'){if(limited&&!hasPermission(actor,'reportsView'))return json({error:'Reports are not enabled for this account.'},403);return json(await monthlySummary(actor,requestUrl(request).searchParams.get('month')));}
   if(resource==='session')return json(actor);
   if(resource==='users')return json(await users(actor));
   if(resource==='attendance'){if(limited&&!hasPermission(actor,'attendanceView'))return json({error:'Attendance viewing is not enabled for this account.'},403);return json(await attendanceData(actor));}
@@ -30,7 +30,7 @@ export async function handleStaff(request:RuntimeRequest){try{
   if(resource==='inventory')return json(await inventoryData(actor));
   if(resource==='rentals')return json(await rentalData(actor));
   if(resource==='cash-reconciliation')return json(await cashReconciliation(actor,requestUrl(request).searchParams.get('date')));
-  if(resource==='report')return json(await dailyReport(actor,requestUrl(request).searchParams.get('date')));
+  if(resource==='report'){if(limited&&!hasPermission(actor,'reportsView'))return json({error:'Reports are not enabled for this account.'},403);return json(await dailyReport(actor,requestUrl(request).searchParams.get('date')));}
   if(resource==='files')return json(await expenseFiles(actor,z.string().uuid().parse(requestUrl(request).searchParams.get('expense'))));
   if(resource==='download')return downloadFile(actor,z.string().uuid().parse(requestUrl(request).searchParams.get('id')));
  }
