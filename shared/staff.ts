@@ -3,12 +3,14 @@ import { z } from 'zod';
 export const roles = ['Director', 'GM', 'Accountant', 'Hall manager'] as const;
 import { halls } from './halls.js';
 export { halls };
-export type Actor = { id: string; name: string; role: typeof roles[number]; hall: typeof halls[number] | null };
+export const accountantPermissionKeys = ['booking','bookingReceipt','bookingRefund'] as const;
+export type AccountantPermissions = Partial<Record<typeof accountantPermissionKeys[number], boolean>>;
+export type Actor = { id: string; name: string; role: typeof roles[number]; hall: typeof halls[number] | null; permissions?: AccountantPermissions };
 export type StaffUser = Actor & { username: string; active: boolean };
 export const userInput = z.object({
   name: z.string().trim().min(2).max(120), username: z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{3,60}$/),
   role: z.enum(roles), hall: z.enum(halls).nullable().default(null), active: z.boolean().default(true),
-  password: z.string().min(8).max(128).optional(),
+  password: z.string().min(8).max(128).optional(), permissions: z.object({booking:z.boolean().optional(),bookingReceipt:z.boolean().optional(),bookingRefund:z.boolean().optional()}).default({}),
 }).refine(v => v.role !== 'Hall manager' || v.hall, 'Assign a hall to this manager');
 export const dateInput = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, 'Choose a valid date');
 export const pkToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());

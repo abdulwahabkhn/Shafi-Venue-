@@ -6,7 +6,8 @@ import { userInput, type Actor, type StaffUser } from '../shared/staff.js';
 
 const scrypt = (password:string,salt:string,length:number,options:import('node:crypto').ScryptOptions) => new Promise<Buffer>((resolve,reject)=>scryptCallback(password,salt,length,options,(error,key)=>error?reject(error):resolve(key)));
 export const staffSchema = `
-CREATE TABLE IF NOT EXISTS shafi_users(id uuid PRIMARY KEY,username text UNIQUE NOT NULL,name text NOT NULL,role text NOT NULL,hall text,active boolean NOT NULL DEFAULT true,password_hash text NOT NULL);
+CREATE TABLE IF NOT EXISTS shafi_users(id uuid PRIMARY KEY,username text UNIQUE NOT NULL,name text NOT NULL,role text NOT NULL,hall text,active boolean NOT NULL DEFAULT true,password_hash text NOT NULL,permissions jsonb NOT NULL DEFAULT '{}'::jsonb);
+ALTER TABLE shafi_users ADD COLUMN IF NOT EXISTS permissions jsonb NOT NULL DEFAULT '{}'::jsonb;
 CREATE TABLE IF NOT EXISTS shafi_sessions(token_hash text PRIMARY KEY,user_id uuid REFERENCES shafi_users(id) NOT NULL,expires timestamptz NOT NULL);
 CREATE INDEX IF NOT EXISTS shafi_sessions_user ON shafi_sessions(user_id);
 CREATE TABLE IF NOT EXISTS shafi_login_attempts(key text PRIMARY KEY,count integer NOT NULL,expires timestamptz NOT NULL);
@@ -20,7 +21,7 @@ const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 function token(request:RuntimeRequest){return header(request,'cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith('shafi_staff='))?.slice(12);}
 export async function actorFor(request:RuntimeRequest):Promise<Actor|null>{
  const value=token(request);
- if(value){if(!/^[a-f0-9]{64}$/.test(value))return null;const r=await bookingPool().query('SELECT u.id,u.name,u.role,u.hall FROM shafi_sessions s JOIN shafi_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires>now() AND u.active=true',[hash(value)]);return r.rows[0]?.role==='Hall manager'?null:r.rows[0]||null;}
+ if(value){if(!/^[a-f0-9]{64}$/.test(value))return null;const r=await bookingPool().query('SELECT u.id,u.name,u.role,u.hall,u.permissions FROM shafi_sessions s JOIN shafi_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires>now() AND u.active=true',[hash(value)]);return r.rows[0]?.role==='Hall manager'?null:r.rows[0]||null;}
  return sessionValid(request)?owner:null;
 }
 export async function passwordHash(password:string){const salt=randomBytes(16).toString('hex');const derived=await scrypt(password,salt,64,{N:32768,r:8,p:3,maxmem:64*1024*1024} as never) as Buffer;return salt+':'+derived.toString('hex');}
@@ -41,7 +42,7 @@ export async function staffLogin(request:RuntimeRequest,raw:unknown){
 }
 export function staffCookie(request:RuntimeRequest,value=''){return `shafi_staff=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${value?28800:0}${requestUrl(request).protocol==='https:'?'; Secure':''}`;}
 export async function staffLogout(request:RuntimeRequest){const value=token(request);if(value)await bookingPool().query('DELETE FROM shafi_sessions WHERE token_hash=$1',[hash(value)]);return staffCookie(request);}
-export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);return (await bookingPool().query('SELECT id,name,username,role,hall,active FROM shafi_users ORDER BY name')).rows;}
+export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);return (await bookingPool().query('SELECT id,name,username,role,hall,active,permissions FROM shafi_users ORDER BY name')).rows;}
 export async function saveUser(actor:Actor,id:string,raw:unknown){
  requireRole(actor,['GM']);const input=userInput.parse(raw);
  if(input.role==='Hall manager')throw new AccessError('Hall Manager portals are no longer supported.');
@@ -50,9 +51,9 @@ export async function saveUser(actor:Actor,id:string,raw:unknown){
  const password=input.password?await passwordHash(input.password):null;
  const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
 
- await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash)',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash]);
+ await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash,permissions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash),permissions=$8',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash,JSON.stringify(input.role==='Accountant'?input.permissions:{})]);
  await c.query('DELETE FROM shafi_sessions WHERE user_id=$1',[id]);
  await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active})]);await c.query('COMMIT');
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
- return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active};
+ return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions};
 }
