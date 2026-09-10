@@ -49,6 +49,12 @@ try{
  const multiRace=await Promise.allSettled([store.saveBooking({...base,date:'2027-03-10',hall:'Hall 1 + Hall 2'},randomUUID()),store.saveBooking({...base,date:'2027-03-10',hall:'Hall 2 + Hall 3'},randomUUID())]);
  ok(multiRace.filter(r=>r.status==='fulfilled').length===1,'Concurrent different combinations cannot double-book a shared hall');
  await store.recordPayment(bookingId,{amount:3000,method:'Cash',reference:'',key:randomUUID()});let summary=await reg.monthlySummary(director,month);ok(summary.netReceipts===3000&&summary.expenses===400&&summary.changePercent===null,'Month uses receipt dates, active expenses and zero-baseline comparison');
+ const optionalRefund={amount:1000,kind:'Refund',method:'Cash',reference:'',key:randomUUID()};
+ ok((await store.recordPayment(bookingId,optionalRefund)).paid===2000,'Refund without reason updates net received');
+ ok((await store.recordPayment(bookingId,{...optionalRefund,reason:''})).paid===2000,'Blank-reason refund retry is idempotent');
+ const refundHistory=await store.bookingHistory(bookingId);
+ ok(refundHistory.payments.filter(p=>p.kind==='Refund').length===1&&refundHistory.payments.find(p=>p.kind==='Refund').reason===''&&refundHistory.audit.some(a=>a.action.includes('Refund: PKR 1000')),'Optional-reason refund retains payment and audit history');
+ await deny(store.recordPayment(bookingId,{...optionalRefund,key:randomUUID(),amount:2001}),'Reason-optional refund cannot exceed money received');
  const itemId=randomUUID();await reg.addInventoryItem(gm,itemId,{name:'Chairs',quantity:100,unit:'pieces'});await reg.addInventoryItem(gm,itemId,{name:'Chairs',quantity:100,unit:'pieces'});await deny(reg.addInventoryItem(accountant,randomUUID(),{name:'No permission',quantity:1}),'Accountant inventory write denied');
  const damageId=randomUUID(),damage={itemId,action:'Damaged',quantity:5,bookingId,sourceId:null,note:'Event damage'};await reg.inventoryAction(gm,damageId,damage);await reg.inventoryAction(gm,damageId,damage);let stock=await reg.inventoryRegister(gm);ok(stock.items[0].available===95&&stock.items[0].damaged===5,'Damage deducts usable and retries once');
  await deny(reg.inventoryAction(gm,randomUUID(),{...damage,quantity:200}),'Cannot damage more stock than available');await deny(reg.inventoryAction(gm,randomUUID(),{...damage,action:'Archive'}),'Unresolved damage prevents item archive');

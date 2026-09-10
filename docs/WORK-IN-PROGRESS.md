@@ -4,6 +4,8 @@ Updated: 9 September 2026. This file preserves implementation status independent
 
 ## User decisions
 
+- 10 September: refund reasons are optional. Preserve transaction history and refund limits; do not submit a refund to the user's live booking during testing.
+
 - Keep the current staff passwords. Do not rotate them without permission.
 - Keep the web portal operational alongside the Windows desktop app.
 - Desktop uses the same live accounts and records and requires internet.

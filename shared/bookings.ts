@@ -25,7 +25,7 @@ export const bookingInput = z.object({
 export type BookingInput = z.infer<typeof bookingInput>;
 export type Booking = BookingInput & { id: string; version: number; paid: number; createdAt: string; reference?: string };
 export const paymentInput = z.object({ amount: z.number().int().positive().max(1000000000), method: z.enum(['Cash', 'Bank transfer']), reference: z.string().trim().max(120), key: z.string().uuid() });
-export const transactionInput = paymentInput.extend({ kind: z.enum(['Receipt', 'Refund']).default('Receipt'), reason: z.string().trim().max(1000).default('') }).refine(v => v.kind !== 'Refund' || v.reason.length > 2, 'A refund requires a reason');
+export const transactionInput = paymentInput.extend({ kind: z.enum(['Receipt', 'Refund']).default('Receipt'), reason: z.string().trim().max(1000).default('') });
 export type Payment = z.infer<typeof transactionInput> & { id: string; booking: string; created: string };
 export type BookingHistory = { payments: Payment[]; audit: {id:string; action:string; created:string; actor:string}[] };
 export function holdsSlot(b: BookingInput, now = Date.now()) { return b.status === 'Confirmed' || b.status === 'Completed' || (b.status === 'Hold' && !!b.holdUntil && Date.parse(b.holdUntil) > now); }
