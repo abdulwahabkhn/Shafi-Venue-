@@ -24,7 +24,7 @@ export async function handleStaff(request:RuntimeRequest){try{
   if(resource==='session')return json(actor);
   if(resource==='users')return json(await users(actor));
   if(resource==='attendance')return json(await attendanceData(actor));
-  if(resource==='employees')return json(actor.role==='Accountant'?await employeeDirectory(actor):await employeeData(actor));
+  if(resource==='employees')return json(actor.role==='Accountant'&&!hasPermission(actor,'employeeSalary')&&!hasPermission(actor,'employeeAdvance')?await employeeDirectory(actor):await employeeData(actor));
   if(resource==='inventory')return json(await inventoryData(actor));
   if(resource==='rentals')return json(await rentalData(actor));
   if(resource==='cash-reconciliation')return json(await cashReconciliation(actor,requestUrl(request).searchParams.get('date')));
