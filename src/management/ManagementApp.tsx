@@ -3,7 +3,7 @@ import { ArrowRight, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard,
 import './management.css';
 import './bookings.css';
 import { StaffAccess, AccountsWorkspace, useActor, logoutStaff } from './StaffAccess';
-import { isAccountantLike, permissionEnabled } from '../../shared/staff';
+import { permissionEnabled } from '../../shared/staff';
 
 const AttendanceWorkspace=lazy(()=>import('./AttendanceWorkspace'));
 const LiveOperations=lazy(()=>import('./LiveOperations'));
@@ -45,14 +45,13 @@ function WebsiteView(){
 export default function ManagementApp(){return <StaffAccess><ManagementShell/></StaffAccess>;}
 function ManagementShell(){
  const actor=useActor();
- const limited=isAccountantLike(actor);
- const limitedNavAccess=(id:ViewId)=>id==='bookings'||id==='calendar'?permissionEnabled(actor,'booking'):id==='inventory'?permissionEnabled(actor,'inventoryView'):id==='expenses'?permissionEnabled(actor,'expenseView'):id==='attendance'?permissionEnabled(actor,'attendanceView'):id==='employees'?permissionEnabled(actor,'employeeView'):id==='reports'?permissionEnabled(actor,'reportsView'):false;
- const firstLimitedView=(['expenses','inventory','attendance','employees','bookings','calendar','reports'] as ViewId[]).find(limitedNavAccess)||'expenses';
- const [view,setView]=useState<ViewId>(limited?firstLimitedView:'overview'),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
+ const limitedNavAccess=(id:ViewId)=>id==='bookings'||id==='calendar'?permissionEnabled(actor,'booking'):id==='inventory'?permissionEnabled(actor,'inventoryView'):id==='expenses'?permissionEnabled(actor,'expenseView'):id==='attendance'?permissionEnabled(actor,'attendanceView'):id==='employees'?permissionEnabled(actor,'employeeView'):id==='reports'?permissionEnabled(actor,'reportsView'):id==='overview'?permissionEnabled(actor,'overviewView'):id==='accounts'?permissionEnabled(actor,'staffManage'):id==='website'?permissionEnabled(actor,'websiteManage'):false;
+ const firstLimitedView=(['overview','expenses','inventory','attendance','employees','bookings','calendar','reports','accounts','website'] as ViewId[]).find(limitedNavAccess)||'expenses';
+ const [view,setView]=useState<ViewId>(firstLimitedView),[mobileNav,setMobileNav]=useState(false),[toast,setToast]=useState('');
  useEffect(()=>{document.title='Venue operations | Shafi Complex & Marquee';},[]);
  useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),5000);return()=>window.clearTimeout(timer);},[toast]);
  useEffect(()=>{if(!mobileNav)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMobileNav(false);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[mobileNav]);
- const activeLabel=navItems.find(item=>item.id===view)?.label||(view==='accounts'?'Staff accounts':'Website manager');
+ const activeLabel=navItems.find(item=>item.id===view)?.label||(view==='accounts'?'Permission center':'Website manager');
  const canNavigate=()=>window.dispatchEvent(new Event('operations:navigate',{cancelable:true}));
  function navigate(next:ViewId){if(next!==view&&!canNavigate())return;setView(next);setMobileNav(false);window.scrollTo({top:0,behavior:'instant'});}
  function signOut(){if(canNavigate())void logoutStaff().catch(e=>setToast(e.message));}
@@ -65,10 +64,10 @@ function ManagementShell(){
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
-   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>!limited||limitedNavAccess(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
+   <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>limitedNavAccess(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
    <nav aria-label="Connected tools"><p>Connected tools</p>
-    {actor.role==='GM'&&<><button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button><button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Staff accounts</span></button></>}
+    {permissionEnabled(actor,'websiteManage')&&<button className={view==='website'?'is-active':''} aria-current={view==='website'?'page':undefined} onClick={()=>navigate('website')}><Sparkles aria-hidden="true"/><span>Website manager</span></button>}{permissionEnabled(actor,'staffManage')&&<button className={view==='accounts'?'is-active':''} aria-current={view==='accounts'?'page':undefined} onClick={()=>navigate('accounts')}><Settings2 aria-hidden="true"/><span>Permission center</span></button>}
 
     <button onClick={signOut}><ShieldCheck aria-hidden="true"/><span>Sign out</span></button>
    </nav>
@@ -78,11 +77,11 @@ function ManagementShell(){
   <main className="ops-main" id="operations-main" tabIndex={-1}>
    <div className="ops-breadcrumb"><span>Shafi Complex & Marquee</span><ArrowRight aria-hidden="true"/><strong>{activeLabel}</strong></div>
    <WorkspaceBoundary key={view}><Suspense fallback={<p className="booking-workspace" role="status">Opening {activeLabel.toLowerCase()}…</p>}>
-    {view==='overview'&&<MonthlyDashboard/>}{view==='bookings'&&<LiveOperations view="bookings"/>}{view==='calendar'&&<LiveOperations view="calendar"/>}
+    {!limitedNavAccess(view)?<section className="ops-panel"><h1>No modules enabled</h1><p>Ask the Director to enable the access you need. You can still sign out.</p></section>:<>{view==='overview'&&<MonthlyDashboard/>}{view==='bookings'&&<LiveOperations view="bookings"/>}{view==='calendar'&&<LiveOperations view="calendar"/>}
     {view==='inventory'&&<InventoryWorkspace/>}{view==='expenses'&&<ExpensesWorkspace/>}
 
-    {view==='attendance'&&<AttendanceWorkspace/>}{view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&(!limited||permissionEnabled(actor,'reportsView'))&&<ReportsWorkspace/>}
-    {view==='accounts'&&actor.role==='GM'&&<AccountsWorkspace/>}{view==='website'&&actor.role==='GM'&&<WebsiteView/>}
+    {view==='attendance'&&<AttendanceWorkspace/>}{view==='employees'&&<EmployeesWorkspace/>}{view==='reports'&&permissionEnabled(actor,'reportsView')&&<ReportsWorkspace/>}
+    {view==='accounts'&&permissionEnabled(actor,'staffManage')&&<AccountsWorkspace/>}{view==='website'&&permissionEnabled(actor,'websiteManage')&&<WebsiteView/>}</>}
    </Suspense></WorkspaceBoundary>
   </main>
   {toast&&<div className="ops-toast" role="status"><span>{toast}</span><button aria-label="Dismiss notification" onClick={()=>setToast('')}><X aria-hidden="true"/></button></div>}

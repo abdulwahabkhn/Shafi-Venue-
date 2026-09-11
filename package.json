@@ -6,6 +6,7 @@
   "scripts": {
     "cms:setup": "node scripts/cms-setup.mjs",
     "test:cms": "node scripts/test-cms.mjs",
+    "test:permissions": "node scripts/test-permission-center.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir node_modules/.shafi-prerender && node scripts/prerender.mjs",
     "preview": "vite preview"

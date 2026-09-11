@@ -38,9 +38,19 @@ export async function employeeDirectory(actor:Actor):Promise<EmployeeData>{
  return {employees:rows.map(r=>({...r.body,salary:0,phone:'',notes:'',exitReason:''})),attendance:[],payments:[],audit:[]};
 }
 export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:number){
- requireRole(actor,['GM','Accountant']);if(actor.role==='Accountant'&&!hasPermission(actor,'employeeAdd')&&!hasPermission(actor,'employeeRemove'))throw new AccessError('Employee editing is not enabled for this account.');const input=employeeInput.parse(raw);
+ requireRole(actor,['GM','Accountant']);if(!hasPermission(actor,'employeeAdd')&&!hasPermission(actor,'employeeRemove'))throw new AccessError('Employee editing is not enabled for this account.');const input=employeeInput.parse(raw);
  return transaction(async c=>{
  const existing=(await c.query('SELECT body FROM shafi_employees WHERE id=$1',[id])).rows[0]?.body as Employee|undefined;
+ if(!hasPermission(actor,'employeeSalary')){
+  if(input.salary!==0&&input.salary!==(existing?.salary||0))throw new AccessError('Salary editing is not enabled for this account.');
+  input.salary=existing?.salary||0;input.salaryEffective=existing?.salaryEffective||input.joined;
+ }
+ if(!existing&&!hasPermission(actor,'employeeAdd'))throw new AccessError('Adding employees is not enabled.');
+ if(existing){
+  const statusKeys=['status','exited','exitReason','joined'];
+  if(input.status!==existing.status&&!hasPermission(actor,'employeeRemove'))throw new AccessError('Changing employment status is not enabled.');
+  if(!hasPermission(actor,'employeeAdd')&&Object.entries(input).some(([k,v])=>!statusKeys.includes(k)&&existing[k as keyof Employee]!==v))throw new AccessError('Editing employee details is not enabled.');
+ }
  if(existing&&version===undefined){if(Object.entries(input).every(([k,v])=>existing[k as keyof Employee]===v))return existing;throw new Error('This employee already exists. Reload before editing.');}
  if(version!==undefined&&existing?.version!==version)throw new Error('Employee record changed. Reload before saving.');
  if(input.joined>pkToday()||input.exited&&input.exited>pkToday())throw new Error('Recruitment and exit dates cannot be in the future.');
@@ -51,7 +61,7 @@ export async function saveEmployee(actor:Actor,id:string,raw:unknown,version?:nu
  });
 }
 export async function saveAttendance(actor:Actor,id:string,raw:unknown,version?:number){
- requireRole(actor,['GM','Accountant']);const input=attendanceInput.parse(raw);
+ requireRole(actor,['GM','Accountant']);if(!hasPermission(actor,'attendanceEdit'))throw new AccessError('Attendance editing is not enabled.');const input=attendanceInput.parse(raw);
  return transaction(async c=>{
  const employee=(await c.query('SELECT body FROM shafi_employees WHERE id=$1',[input.employeeId])).rows[0]?.body as Employee|undefined;
  if(!employee||!hallAccess(actor,employee.hall))throw new AccessError('Employee unavailable for your hall.');
@@ -65,7 +75,8 @@ export async function saveAttendance(actor:Actor,id:string,raw:unknown,version?:
  });
 }
 export async function recordEmployeePayment(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['GM']);const input=employeePaymentInput.parse(raw);
+ requireRole(actor,['GM','Accountant']);const input=employeePaymentInput.parse(raw);
+ if(!hasPermission(actor,input.kind==='Advance'||input.kind==='Advance repayment'?'employeeAdvance':'employeeSalary'))throw new AccessError('This employee payment action is not enabled.');
  return transaction(async c=>{
  const existing=(await c.query('SELECT body FROM shafi_employee_payments WHERE id=$1',[id])).rows[0]?.body;
  if(existing){if(Object.entries(input).some(([k,v])=>existing[k]!==v))throw new Error('Payment retry differs from the saved payment.');return existing;}
@@ -95,7 +106,7 @@ export async function recordEmployeePayment(actor:Actor,id:string,raw:unknown){
  });
 }
 export async function voidEmployeePayment(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['GM']);const reason=z.string().trim().min(3).max(1000).parse(raw);
+ requireRole(actor,['GM','Accountant']);if(!hasPermission(actor,'employeeSalary')||!hasPermission(actor,'employeeAdvance'))throw new AccessError('Voiding requires both salary and advance access.');const reason=z.string().trim().min(3).max(1000).parse(raw);
  return transaction(async c=>{const payment=(await c.query('SELECT body FROM shafi_employee_payments WHERE id=$1',[id])).rows[0]?.body as EmployeePayment|undefined;if(!payment)throw new Error('Payment not found.');if(payment.voidedAt)return payment;
  if(payment.kind==='Advance'){const other=(await c.query('SELECT body FROM shafi_employee_payments WHERE employee=$1 AND id<>$2',[payment.employeeId,id])).rows.map(r=>r.body as EmployeePayment).filter(p=>!p.voidedAt);if(other.reduce((s,p)=>s+(p.kind==='Advance'?p.amount:p.kind==='Advance repayment'?-p.amount:0),0)<0)throw new Error('Reverse related advance repayments before voiding this advance.');}
  payment.voidedAt=new Date().toISOString();payment.voidReason=reason;await c.query('UPDATE shafi_employee_payments SET body=$2 WHERE id=$1',[id,JSON.stringify(payment)]);await audit(c,actor,payment.employeeId,'Payment voided',payment);return payment;});

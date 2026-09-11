@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, type FormEvent, type ReactNode } from 'react';
-import type { Actor, StaffUser } from '../../shared/staff';
-import { accountantPermissionGroups, isBuiltInRole } from '../../shared/staff';
+import type { Actor, StaffUser, AccountantPermissionKey, AccountantPermissions } from '../../shared/staff';
+import { accountantPermissionGroups, accountantPermissionKeys, permissionEnabled, isBuiltInRole } from '../../shared/staff';
 import { staffApi } from './staff-api';
 import './bookings.css';
 import './account-permissions.css';
@@ -20,17 +20,88 @@ export async function logoutStaff(){
  await fetch('/api/cms?action=logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
  window.location.assign('/management');
 }
+const permissionLabels:Record<AccountantPermissionKey,string>={
+ booking:'View, add and edit bookings',bookingReceipt:'Record receipts',bookingRefund:'Record refunds',
+ inventoryView:'View inventory',inventoryAdd:'Add items and quantities',inventoryRemove:'Remove items and quantities',inventoryDamage:'Record damage',inventoryReplace:'Record replacements',
+ expenseView:'View expense sheet',expenseAdd:'Add expenses',expenseRemove:'Remove expenses',
+ employeeView:'View employees',employeeAdd:'Add and edit employees',employeeRemove:'Change employment status',
+ employeeSalary:'Record salary and wages',employeeAdvance:'Record advances and repayments',
+ attendanceView:'View attendance',attendanceEdit:'Mark and edit attendance',
+ overviewView:'View monthly overview',reportsView:'View and print reports',websiteManage:'Manage website content',staffManage:'Manage subordinate accounts'
+};
+const parentPermission:Partial<Record<AccountantPermissionKey,AccountantPermissionKey>>={
+ bookingReceipt:'booking',bookingRefund:'booking',
+ inventoryAdd:'inventoryView',inventoryRemove:'inventoryView',inventoryDamage:'inventoryView',inventoryReplace:'inventoryView',
+ expenseAdd:'expenseView',expenseRemove:'expenseView',
+ employeeAdd:'employeeView',employeeRemove:'employeeView',employeeSalary:'employeeView',employeeAdvance:'employeeView',attendanceEdit:'attendanceView'
+};
+function permissionDefaults(role:string,permissions?:AccountantPermissions):AccountantPermissions{
+ return Object.fromEntries(accountantPermissionKeys.map(key=>[key,permissionEnabled({role,permissions},key as AccountantPermissionKey)]));
+}
 export function AccountsWorkspace(){
  const actor=useActor(),key=useRef<string>(crypto.randomUUID());
- const [rows,setRows]=useState<StaffUser[]>([]),[editing,setEditing]=useState(false),[selected,setSelected]=useState<StaffUser|null>(null),[roleChoice,setRoleChoice]=useState<string>('Accountant'),[customRole,setCustomRole]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
- const load=()=>staffApi<StaffUser[]>('users').then(setRows).catch(e=>setError(e.message));useEffect(()=>{void load();},[]);
+ const [rows,setRows]=useState<StaffUser[]>([]),[loading,setLoading]=useState(true),[editing,setEditing]=useState(false),[selected,setSelected]=useState<StaffUser|null>(null);
+ const [roleChoice,setRoleChoice]=useState('Accountant'),[customRole,setCustomRole]=useState(''),[permissions,setPermissions]=useState<AccountantPermissions>({});
+ const [busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const canManage=permissionEnabled(actor,'staffManage'),director=actor.role==='Director';
+ const load=async()=>{setLoading(true);try{setRows(await staffApi<StaffUser[]>('users'));}catch(e){setError((e as Error).message);}finally{setLoading(false);}};
+ useEffect(()=>{if(canManage)void load();else setLoading(false);},[canManage]);
  useEffect(()=>{const guard=(e:Event)=>{if(busy||(editing&&!window.confirm('Discard this unsaved account form?')))e.preventDefault();};window.addEventListener('operations:navigate',guard);return()=>window.removeEventListener('operations:navigate',guard);},[editing,busy]);
- function beginAdd(){key.current=crypto.randomUUID();setSelected(null);setRoleChoice('Accountant');setCustomRole('');setError('');setEditing(true);}
- function beginEdit(user:StaffUser){key.current=user.id;setSelected(user);setRoleChoice(isBuiltInRole(user.role)&&user.role!=='Hall manager'?user.role:'__new__');setCustomRole(isBuiltInRole(user.role)?'':user.role);setError('');setEditing(true);}
- async function save(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);const role=roleChoice==='__new__'?String(f.get('customRole')||'').trim():roleChoice;if(roleChoice==='__new__'&&!role){setError('Enter a name for the new role.');return;}setBusy(true);setError('');try{await staffApi('users',{id:selected?.id||key.current,entry:{name:f.get('name'),username:f.get('username'),role,hall:null,active:f.get('active')==='on',permissions:Object.fromEntries(Object.values(accountantPermissionGroups).flat().map(permission=>[permission,f.get('perm-'+permission)==='on'])),...(f.get('password')?{password:f.get('password')}:{})}});setEditing(false);setMessage('Account saved. Existing sessions for this account have been signed out.');await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
- if(actor.role!=='GM')return <p role="alert">Only the GM can manage staff access.</p>;
- const customEditing=roleChoice==='__new__';
- return <div className="booking-workspace"><div className="ops-page-heading"><div><h1>Staff accounts</h1><p>GM manages operations. Director monitors. Accountant adds and removes daily expenses.</p></div><button className="ops-button ops-button--gold" disabled={busy||editing} onClick={beginAdd}>Add account</button></div>{error&&<p role="alert" className="booking-error">{error}</p>}{message&&<p role="status" className="booking-success">{message}</p>}{editing&&<section className="ops-panel"><form onSubmit={save} className="booking-fields" key={key.current}><fieldset disabled={busy}><label>Full name<input name="name" required minLength={2} maxLength={120} defaultValue={selected?.name}/></label><label>Username<input name="username" required pattern="[a-z0-9._-]{3,60}" defaultValue={selected?.username}/></label><label>Role<select name="role" value={roleChoice} onChange={e=>setRoleChoice(e.currentTarget.value)}><option value="Accountant">Accountant</option><option value="GM">GM</option><option value="Director">Director</option><option value="__new__">Add new role…</option></select></label>{customEditing&&<label>New role name<input name="customRole" required minLength={2} maxLength={60} pattern="[A-Za-z0-9][A-Za-z0-9 &._/-]*" value={customRole} onChange={e=>setCustomRole(e.currentTarget.value)} placeholder="e.g. Operations assistant"/><small className="field-hint">Custom roles use only the permission categories you select below.</small></label>}<label>{selected?'New password (leave empty to keep)':'Password'}<input name="password" type="password" required={!selected} minLength={8} maxLength={128} autoComplete="new-password"/></label><label><input type="checkbox" name="active" defaultChecked={selected?.active??true}/>Account active</label>{(roleChoice==='Accountant'||customEditing)&&<PermissionMatrix selected={selected} custom={customEditing}/>}</fieldset><div className="booking-actions"><button className="ops-button ops-button--gold" disabled={busy}>Save account</button><button type="button" className="ops-button ops-button--quiet" disabled={busy} onClick={()=>setEditing(false)}>Cancel</button></div></form></section>}<section className="ops-panel"><div className="ops-table-wrap"><table className="ops-table"><thead><tr><th>Name</th><th>Username</th><th>Access</th><th>Status</th><th>Action</th></tr></thead><tbody>{rows.filter(u=>u.role!=='Hall manager').map(u=><tr key={u.id}><td>{u.name}</td><td>{u.username}</td><td>{u.role}</td><td>{u.active?'Active':'Disabled'}</td><td><button className="ops-button ops-button--quiet" disabled={busy||editing} onClick={()=>beginEdit(u)}>Edit</button></td></tr>)}</tbody></table></div></section></div>;
+ const restrictGrant=(value:AccountantPermissions)=>Object.fromEntries(Object.entries(value).map(([k,v])=>[k,!!v&&permissionEnabled(actor,k as AccountantPermissionKey)]));
+ function begin(user:StaffUser|null){
+  key.current=user?.id||crypto.randomUUID();setSelected(user);
+  const role=user?.role||'Accountant';setRoleChoice(isBuiltInRole(role)?role:'__new__');setCustomRole(isBuiltInRole(role)?'':role);
+  setPermissions(restrictGrant(permissionDefaults(role,user?.permissions)));setError('');setMessage('');setEditing(true);
+ }
+ function changeRole(role:string){setRoleChoice(role);setPermissions(restrictGrant(permissionDefaults(role==='__new__'?'Custom role':role)));}
+ async function save(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();const f=new FormData(e.currentTarget),role=roleChoice==='__new__'?customRole.trim():roleChoice;
+  if(roleChoice==='__new__'&&isBuiltInRole(role)){setError('Choose a built-in role from the role list instead.');return;}
+  setBusy(true);setError('');
+  try{
+   await staffApi('users',{id:key.current,entry:{name:f.get('name'),username:f.get('username'),role,hall:null,active:f.get('active')==='on',permissions:role==='Director'?{}:permissions,...(f.get('password')?{password:f.get('password')}:{})}});
+   setEditing(false);setMessage('Access saved. This account must sign in again to use its updated permissions.');
+   if(selected?.id===actor.id){window.location.reload();return;}await load();
+  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+ }
+ if(!canManage)return <p role="alert">Permission center access is not enabled for this account.</p>;
+ return <div className="booking-workspace">
+  <div className="ops-page-heading"><div><h1>Permission center</h1><p>{director?'You have full access. Control GM, Accountant and custom-role accounts here.':'Manage Accountant and custom-role access within the permissions the Director has given you.'}</p></div><button className="ops-button ops-button--gold" disabled={busy||editing||loading} onClick={()=>begin(null)}>Add account</button></div>
+  {error&&<p role="alert" className="booking-error">{error}</p>}{message&&<p role="status" className="booking-success">{message}</p>}
+  {editing&&<section className="ops-panel"><h2>{selected?'Edit '+selected.name:'Add account'}</h2>
+   <form onSubmit={save} className="booking-fields" key={key.current}><fieldset disabled={busy}>
+    <label>Full name<input name="name" required minLength={2} maxLength={120} defaultValue={selected?.name}/></label>
+    <label>Username<input name="username" required pattern="[a-z0-9._-]{3,60}" maxLength={60} defaultValue={selected?.username} autoComplete="off"/></label>
+    <label>Role<select value={roleChoice} disabled={selected?.id===actor.id} onChange={e=>changeRole(e.currentTarget.value)}><option>Accountant</option>{director&&<><option>GM</option><option>Director</option></>}<option value="__new__">Add new role…</option></select></label>
+    {roleChoice==='__new__'&&<label>New role name<input required minLength={2} maxLength={60} value={customRole} onChange={e=>setCustomRole(e.currentTarget.value)} placeholder="e.g. Operations assistant"/></label>}
+    <label>{selected?'New password (leave empty to keep)':'Password'}<input name="password" type="password" required={!selected} minLength={8} maxLength={128} autoComplete="new-password"/></label>
+    <label className="account-active"><input type="checkbox" name="active" defaultChecked={selected?.active??true} onChange={e=>{if(selected?.id===actor.id&&!e.currentTarget.checked){e.currentTarget.checked=true;setError('You cannot disable your own account.');}}}/>Account active</label>
+    {roleChoice==='Director'?<p className="booking-success">Director has full access to every module and the permission center. These permissions cannot be switched off.</p>:<PermissionMatrix role={roleChoice} permissions={permissions} onChange={setPermissions} actor={actor}/>}
+   </fieldset><div className="booking-actions"><button className="ops-button ops-button--gold" disabled={busy}>{busy?'Saving access…':'Save account'}</button><button type="button" className="ops-button ops-button--quiet" disabled={busy} onClick={()=>setEditing(false)}>Cancel</button></div></form>
+  </section>}
+  {loading?<p role="status">Loading staff accounts…</p>:<section className="ops-panel"><div className="ops-table-wrap"><table className="ops-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Access</th></tr></thead><tbody>{rows.filter(u=>u.role!=='Hall manager').map(u=><tr key={u.id}><td>{u.name}</td><td>{u.username}</td><td>{u.role}</td><td>{u.active?'Active':'Disabled'}</td><td>{director||!['Director','GM'].includes(u.role)?<button className="ops-button ops-button--quiet" disabled={busy||editing} onClick={()=>begin(u)}>Edit access</button>:<span>Director controlled</span>}</td></tr>)}</tbody></table></div>{!rows.length&&<p>No staff accounts yet. Add an account to assign access.</p>}</section>}
+ </div>;
 }
-
-function PermissionMatrix({selected,custom}:{selected:StaffUser|null;custom:boolean}){return <div className="account-permissions"><strong>{custom?'Custom role permissions':'Accountant permissions'}</strong><p>{custom?'Choose the least access this role needs. It will not inherit GM or Director authority.':'Choose All for a category, or enable individual actions.'}</p>{Object.entries(accountantPermissionGroups).map(([group,keys])=>{const all=keys.every(permission=>!!selected?.permissions?.[permission]);return <fieldset key={group} className="permission-group"><legend>{group}</legend><label className="permission-all"><input type="checkbox" name={"perm-all-"+group} defaultChecked={all} onChange={e=>{const form=e.currentTarget.form;if(form)keys.forEach(permission=>{const input=form.elements.namedItem("perm-"+permission) as HTMLInputElement|null;if(input)input.checked=e.currentTarget.checked;});}}/>All</label>{keys.map(permission=><label key={permission}><input type="checkbox" name={"perm-"+permission} defaultChecked={!!selected?.permissions?.[permission]}/>{permission}</label>)}</fieldset>})}</div>}
+function PermissionMatrix({role,permissions,onChange,actor}:{role:string;permissions:AccountantPermissions;onChange:(v:AccountantPermissions)=>void;actor:Actor}){
+ function toggle(keys:readonly AccountantPermissionKey[],checked:boolean){
+  const next={...permissions};
+  for(const key of keys){
+   if(!permissionEnabled(actor,key))continue;
+   next[key]=checked;
+   if(checked&&parentPermission[key])next[parentPermission[key]!]=true;
+   if(!checked)for(const [child,parent] of Object.entries(parentPermission))if(parent===key)next[child as AccountantPermissionKey]=false;
+  }
+  onChange(next);
+ }
+ return <div className="account-permissions"><strong>{role==='GM'?'GM':'Account'} permissions</strong><p>Select All for a category, or choose individual actions. Editing actions also enable the viewing access they need. Voiding employee payments requires both salary and advance access.</p>
+ {Object.entries(accountantPermissionGroups).map(([group,groupKeys])=>{
+  const keys=groupKeys.filter(k=>k!=='staffManage'||role==='GM');
+  if(!keys.length)return null;
+  const available=keys.filter(k=>permissionEnabled(actor,k)),all=keys.every(k=>permissions[k]),some=keys.some(k=>permissions[k]);
+  return <fieldset key={group} className="permission-group"><legend>{group}</legend>
+   <label className="permission-all"><input type="checkbox" aria-label={'All '+group+' permissions'} checked={all} ref={el=>{if(el)el.indeterminate=some&&!all;}} disabled={!available.length} onChange={e=>toggle(available,e.currentTarget.checked)}/>All</label>
+   {keys.map(k=><label key={k}><input type="checkbox" checked={!!permissions[k]} disabled={!permissionEnabled(actor,k)} onChange={e=>toggle([k],e.currentTarget.checked)}/>{permissionLabels[k]}</label>)}
+  </fieldset>;
+ })}
+ </div>;
+}

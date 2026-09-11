@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { actorFor, hasPermission } from "../server/staff-auth.js";
+async function cmsAccess(request: RuntimeRequest) { const actor=await actorFor(request); return !!actor && hasPermission(actor,"websiteManage"); }
 import { resolve } from "node:path";
 import { contentSchema } from "../shared/content.js";
 import {
@@ -9,7 +11,6 @@ import {
   type RuntimeRequest,
   sameOrigin,
   sessionCookie,
-  sessionValid,
 } from "../server/auth.js";
 import {
   localDirectory,
@@ -95,7 +96,7 @@ export async function handleRequest(request: RuntimeRequest): Promise<Response> 
   try {
     if (request.method === "GET" && action === "session")
       return json({
-        authenticated: sessionValid(request),
+        authenticated: await cmsAccess(request),
         configured: configured(),
         storageReady: storageReady(),
         local: localStorage(),
@@ -153,7 +154,7 @@ export async function handleRequest(request: RuntimeRequest): Promise<Response> 
         "Set-Cookie": sessionCookie(request),
       });
     }
-    if (!sessionValid(request))
+    if (!(await cmsAccess(request)))
       return json(
         { error: "Your session has ended. Sign in again to continue." },
         401,

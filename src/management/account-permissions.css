@@ -6,4 +6,9 @@
 .permission-group label { display: flex; align-items: center; gap: .55rem; min-height: 2.25rem; cursor: pointer; }
 .permission-group input[type="checkbox"] { width: 1.2rem; height: 1.2rem; flex: 0 0 1.2rem; accent-color: var(--ops-gold, #d2a34d); }
 .permission-all { font-weight: 600; }
+.booking-fields .account-active { display: flex; align-items: center; gap: .6rem; }
+.booking-fields .account-active input[type="checkbox"] { width: 1.2rem; height: 1.2rem; }
+.booking-fields .account-permissions { grid-column: 1 / -1; min-width: 0; }
+.booking-fields .account-permissions .permission-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+.permission-group input:focus-visible { outline: 2px solid var(--ops-ink, #143d31); outline-offset: 3px; }
 .field-hint { display: block; margin-top: .45rem; color: var(--ops-ink-soft, #4b554f); font-size: .88rem; line-height: 1.45; }

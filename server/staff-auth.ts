@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS shafi_staff_audit(id uuid PRIMARY KEY,entity text NOT
 `;
 export class AccessError extends Error { status = 403; }
 export const owner:Actor={id:'owner',name:'Director (owner access)',role:'Director',hall:null};
-export function requireRole(actor:Actor,allowed:Actor['role'][]){if(!allowed.includes(effectiveRole(actor.role)))throw new AccessError('Your role cannot perform this action.');}
+export function requireRole(actor:Actor,allowed:Actor['role'][]){if(actor.role!=='Director'&&!allowed.includes(effectiveRole(actor.role)))throw new AccessError('Your role cannot perform this action.');}
 export function hallAccess(actor:Actor,hall:string|null){return actor.role!=='Hall manager'||actor.hall===hall;}
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 function token(request:RuntimeRequest){return header(request,'cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith('shafi_staff='))?.slice(12);}
@@ -38,25 +38,35 @@ export async function staffLogin(request:RuntimeRequest,raw:unknown){
  const valid=await matches(input.password,u?.password_hash||fallback);
  if(!u?.active||u.role==='Hall manager'||!valid)throw new AccessError('Username or password is incorrect.');
  const value=randomBytes(32).toString('hex');await bookingPool().query("INSERT INTO shafi_sessions(token_hash,user_id,expires) VALUES($1,$2,now()+interval '8 hours')",[hash(value),u.id]);
- return {actor:{id:u.id,name:u.name,role:u.role,hall:u.hall} as Actor,cookie:staffCookie(request,value)};
+ return {actor:{id:u.id,name:u.name,role:u.role,hall:u.hall,permissions:u.permissions} as Actor,cookie:staffCookie(request,value)};
 }
 export function staffCookie(request:RuntimeRequest,value=''){return `shafi_staff=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${value?28800:0}${requestUrl(request).protocol==='https:'?'; Secure':''}`;}
 export async function staffLogout(request:RuntimeRequest){const value=token(request);if(value)await bookingPool().query('DELETE FROM shafi_sessions WHERE token_hash=$1',[hash(value)]);return staffCookie(request);}
-export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM','Accountant']);const rows=(await bookingPool().query('SELECT id,name,username,role,hall,active,permissions FROM shafi_users ORDER BY name')).rows;return rows.map(r=>r.role==='Accountant'?{...r,permissions:{expenseView:true,expenseAdd:true,expenseRemove:true,inventoryView:true,inventoryAdd:true,inventoryRemove:true,inventoryDamage:true,inventoryReplace:true,attendanceView:true,attendanceEdit:true,employeeView:true,...(r.permissions||{})}}:r);}
+export async function users(actor:Actor):Promise<StaffUser[]>{requireRole(actor,['Director','GM']);requirePermission(actor,'staffManage');const rows=(await bookingPool().query('SELECT id,name,username,role,hall,active,permissions FROM shafi_users ORDER BY name')).rows;return rows.map(r=>r.role==='Accountant'?{...r,permissions:{expenseView:true,expenseAdd:true,expenseRemove:true,inventoryView:true,inventoryAdd:true,inventoryRemove:true,inventoryDamage:true,inventoryReplace:true,attendanceView:true,attendanceEdit:true,employeeView:true,...(r.permissions||{})}}:r);}
 export async function saveUser(actor:Actor,id:string,raw:unknown){
- requireRole(actor,['GM']);const input=userInput.parse(raw);
+ requireRole(actor,['GM']);requirePermission(actor,'staffManage');const input=userInput.parse(raw);
  if(input.role==='Hall manager')throw new AccessError('Hall Manager portals are no longer supported.');
  if(id===actor.id&&!input.active)throw new AccessError('You cannot disable your current account.');
- if(id===actor.id&&input.role!=='GM')throw new AccessError('You cannot remove your own GM role.');
+ if(id===actor.id&&input.role!==actor.role)throw new AccessError('You cannot change your own role.');
  const password=input.password?await passwordHash(input.password):null;
- const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
+ const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash,role FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
+ if(actor.role!=='Director'){
+  if(['GM','Director'].includes(existing?.role)||['GM','Director'].includes(input.role))throw new AccessError('Only the Director can manage GM and Director accounts.');
+  for(const [permission,enabled] of Object.entries(input.permissions))if(enabled&&!hasPermission(actor,permission as AccountantPermissionKey))throw new AccessError('You cannot grant access that the Director has not enabled for you.');
+ }
+ if(existing?.role==='Director'&&(!input.active||input.role!=='Director')){
+  const others=await c.query("SELECT id FROM shafi_users WHERE role='Director' AND active=true AND id<>$1",[id]);
+  if(!others.rowCount)throw new AccessError('Keep at least one active Director account.');
+ }
 
- await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash,permissions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash),permissions=$8',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash,JSON.stringify(input.role==='Accountant'?input.permissions:{})]);
+ await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash,permissions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash),permissions=$8',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash,JSON.stringify(input.role==='Director'?{}:input.permissions)]);
  await c.query('DELETE FROM shafi_sessions WHERE user_id=$1',[id]);
- await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active})]);await c.query('COMMIT');
+ await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions})]);await c.query('COMMIT');
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions};
 }
+
+export function requirePermission(actor:Actor,key:AccountantPermissionKey){if(!hasPermission(actor,key))throw new AccessError('This action is not enabled for your account. Ask the Director to review your permissions.');}
 
 export function hasPermission(actor:Actor,key:AccountantPermissionKey){
  return permissionEnabled(actor,key);
