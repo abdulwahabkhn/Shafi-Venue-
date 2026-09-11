@@ -25,6 +25,7 @@
 .booking-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#c8cec4;border:1px solid #c8cec4;margin-bottom:24px;}
 .booking-stats>div{padding:24px;background:#fffdf8;}.booking-stats span{display:block;}.booking-stats strong{font-size:26px;display:block;margin-top:12px;}
 @media print{.ops-topbar,.ops-sidebar,.ops-breadcrumb,.booking-actions,.booking-payment,button{display:none!important;}.ops-main{margin:0!important;padding:0!important;}.ops-panel{border:0!important;}details{display:none;}}
+.expense-category-tabs{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.expense-category-tabs .ops-button{display:inline-flex;align-items:center;gap:8px}.expense-category-tabs .ops-button span{font-variant-numeric:tabular-nums;opacity:.8}
 @media(max-width:600px){.booking-stats,.booking-filters{grid-template-columns:1fr;}.booking-stats strong{font-size:22px;}}
 .booking-error {color:#8d2821;background:#ffebe6;padding:16px;margin-bottom:20px;}
 .booking-error a {text-decoration:underline;}

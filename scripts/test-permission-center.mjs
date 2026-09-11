@@ -47,6 +47,7 @@ const shared=await vite.ssrLoadModule('/shared/staff.ts');
 const {handleStaff}=await vite.ssrLoadModule('/api/staff.ts');
 const {handleBookings}=await vite.ssrLoadModule('/api/bookings.ts');
 const {handleRequest:handleCms}=await vite.ssrLoadModule('/api/cms.ts');
+const {expenseCategories,categoryForExpenseItem}=await vite.ssrLoadModule('/shared/expense-items.ts');
 const director={id:randomUUID(),name:'Test Director',role:'Director',hall:null};
 const gm={id:randomUUID(),name:'Test GM',role:'GM',hall:null};
 const accountant={id:randomUUID(),name:'Test Accountant',role:'Accountant',hall:null};
@@ -63,6 +64,8 @@ try{
  ok(shared.permissionEnabled(gm,'staffManage'),'Existing GM keeps default access');
  ok(!shared.permissionEnabled({...gm,permissions:{bookingRefund:false}},'bookingRefund'),'Explicit GM restriction overrides default');
  ok(!shared.permissionEnabled({...accountant,role:'Custom'},'expenseAdd'),'Custom roles start without inherited access');
+ ok(expenseCategories.join('|')==='Marquee expense|Agriculture expense|Court and govt. expense','Daily expenses expose the three requested categories');
+ ok(categoryForExpenseItem('Seeds')==='Agriculture expense'&&categoryForExpenseItem('Govt taxes')==='Court and govt. expense'&&categoryForExpenseItem('Staff food')==='Marquee expense','Existing item names map to their category');
  await auth.saveUser(director,director.id,entry(director));
  await auth.saveUser(director,gm.id,entry(gm,{booking:true,bookingRefund:false}));
  await auth.saveUser(director,accountant.id,entry(accountant,{expenseView:true,expenseAdd:true,expenseRemove:false}));
