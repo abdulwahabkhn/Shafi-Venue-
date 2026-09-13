@@ -12,11 +12,12 @@ export async function fundingSummary(actor:Actor, raw:string|null, client:Pick<P
     SUM((body->>'amount')::numeric) AS amount,
     SUM(CASE WHEN body->>'date'<$1 THEN (body->>'amount')::numeric ELSE 0 END) AS prior
     FROM shafi_expenses WHERE body->>'date'<=$1 AND body->>'voidedAt' IS NULL
-    AND body->>'kind' IN ('Cash issue','Expense','Cash return') GROUP BY 1,2`,[date]);
+    AND body->>'kind' IN ('Cash issue','Expense','Cash return')
+    AND body->>'fundScope'='expense-sheet' GROUP BY 1,2`,[date]);
   return summarizeFunding(date,rows);
 }
 export async function fundingEntries(date:string, client:Pick<PoolClient,'query'>):Promise<FundingEntry[]> {
-  const {rows}=await client.query("SELECT body FROM shafi_expenses WHERE body->>'kind'='Cash issue' AND body->>'date'=$1 ORDER BY created,id",[date]);
+  const {rows}=await client.query("SELECT body FROM shafi_expenses WHERE body->>'kind'='Cash issue' AND body->>'fundScope'='expense-sheet' AND body->>'date'=$1 ORDER BY created,id",[date]);
   return rows.map(({body:r})=>({id:r.id,date:r.date,amount:r.amount,method:r.method,purpose:r.purpose||r.description,reference:r.reference||'',actor:r.actor,removed:!!r.voidedAt,canRemove:r.fundScope==='expense-sheet'}));
 }
 export async function recordFunding(actor:Actor,id:string,raw:unknown,action?:string) {

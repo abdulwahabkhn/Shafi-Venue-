@@ -39,7 +39,7 @@ async function query(sql,values=[]){
  if(update){table(update[1]).set(values[0],JSON.parse(values[1]));return result([]);}
  if(sql.includes("SUM(CASE WHEN body->>'date'<$1")){
   const groups=new Map();for(const r of table('shafi_expenses').values()){
-   if(r.voidedAt||r.date>values[0]||!['Cash issue','Expense','Cash return'].includes(r.kind))continue;
+   if(r.voidedAt||r.date>values[0]||r.fundScope!=='expense-sheet'||!['Cash issue','Expense','Cash return'].includes(r.kind))continue;
    const key=r.kind+'|'+r.method,group=groups.get(key)||{kind:r.kind,method:r.method,amount:0,prior:0};group.amount+=r.amount;if(r.date<values[0])group.prior+=r.amount;groups.set(key,group);
   }return result([...groups.values()]);
  }
@@ -149,11 +149,11 @@ try{
  const expenseTable=table('shafi_expenses'),savedExpenses=new Map(expenseTable);expenseTable.clear();
  const today=shared.pkToday(),priorDate=new Date(today+'T00:00:00Z');priorDate.setUTCDate(priorDate.getUTCDate()-1);const yesterday=priorDate.toISOString().slice(0,10);
  const seed=(kind,amount,date,method='Cash',extra={})=>{const id=randomUUID();expenseTable.set(id,{id,kind,amount,date,method,actor:'Fixture',...extra});return id;};
- seed('Expense',1200,yesterday);seed('Expense',300,today,'Bank transfer');
- seed('Cash issue',999999,'2099-01-01');seed('Expense',99999,today,'Cash',{voidedAt:today});seed('Salary',88888,today);
+ seed('Expense',1200,yesterday,'Cash',{fundScope:'expense-sheet'});seed('Expense',300,today,'Bank transfer',{fundScope:'expense-sheet'});
+ seed('Cash issue',999999,'2099-01-01','Cash',{fundScope:'expense-sheet'});seed('Expense',99999,today,'Cash',{voidedAt:today,fundScope:'expense-sheet'});seed('Salary',88888,today);
  const funds=async actor=>{const response=await handleStaff(request(actor,'funding'));assert.equal(response.status,200);return response.json();};
  let balance=await funds(director);
- ok(balance.remaining===-1500&&balance.opening===-1200,'Overspending carries forward from yesterday without resetting or including future/voided entries');
+ ok(balance.remaining===0&&balance.opening===0,'Unfunded spend stays at zero and future/voided entries are excluded');
  const cashIssueId=randomUUID(),cashIssue={amount:1000,method:'Cash',purpose:'Daily expenses',reference:''};
  const issueResponse=await handleStaff(request(director,'funding',{id:cashIssueId,entry:cashIssue}));ok(issueResponse.status===200,'Director can record petty cash issued');
  const issueCount=expenseTable.size;
@@ -162,10 +162,12 @@ try{
  balance=await funds(director);ok(balance.remaining===-500,'Top-up partially clears negative balance');
  const bankId=randomUUID();ok((await handleStaff(request(director,'funding',{id:bankId,entry:{amount:2000,method:'Bank transfer',purpose:'Petty expense funds',reference:'TEST-ONLY'}}))).status===200,'Bank funds can be issued separately');
  balance=await funds(director);ok(balance.remaining===1500&&balance.issuedCash===1000&&balance.issuedBank===2000,'New bank funds first clear the deficit, then leave spendable funds');
- const returnId=seed('Cash return',100,today);balance=await funds(director);ok(balance.remaining===1400,'Recorded returns reduce the shared fund');expenseTable.delete(returnId);
+ const returnId=seed('Cash return',100,today,'Cash',{fundScope:'expense-sheet'});balance=await funds(director);ok(balance.remaining===1400,'Recorded returns reduce the shared fund');expenseTable.delete(returnId);
+ expenseTable.set(randomUUID(),{id:randomUUID(),kind:'Expense',amount:321510,date:yesterday,method:'Cash',actor:'Legacy'});
+ ok((await funds(director)).remaining===1500,'Legacy expenses without a shared-fund tag do not create a false shortfall');
  const sheetResponse=await handleStaff(request(director,'expense-sheet&date='+today));const sheet=await sheetResponse.json();
  ok(sheet.total===300&&sheet.funding.remaining===1500&&sheet.issues.length===2,'Daily expense sheet separates daily expense/issuance from all-time balance');
- const historical=await handleStaff(request(director,'expense-sheet&date='+yesterday));const historic=await historical.json();ok(historic.total===1200&&historic.funding.remaining===-1200&&historic.funding.issued===0,'Historical sheet excludes later top-ups');
+ const historical=await handleStaff(request(director,'expense-sheet&date='+yesterday));const historic=await historical.json();ok(historic.total===322710&&historic.funding.remaining===0&&historic.funding.issued===0,'Historical sheet excludes later top-ups and keeps unfunded legacy spend at zero');
  ok((await handleStaff(request(director,'funding',{id:randomUUID(),entry:{...cashIssue,amount:0}}))).status!==200,'Zero funds are rejected');
  ok((await handleStaff(request(director,'funding',{id:randomUUID(),entry:{...cashIssue,method:'Bank transfer'}}))).status!==200,'Bank reference is validated');
  accounts.get(accountant.id).permissions={expenseView:true,expenseAdd:true};
