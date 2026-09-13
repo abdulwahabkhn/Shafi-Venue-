@@ -55,12 +55,20 @@
 .booking-additional-services{grid-column:1 / -1!important;margin-top:4px!important;padding:18px!important;border:1px solid #c8cec4!important;background:#f5f0e6;}
 .booking-additional-services legend{padding:0 8px;font-size:18px;font-weight:600;}
 .booking-additional-services p{grid-column:1 / -1;margin:0 0 10px;color:#4b554f;}
+.booking-amount-field{max-width:260px;margin-top:10px;}
+.booking-total-summary{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:#c8cec4;border:1px solid #c8cec4;margin-top:4px;}
+.booking-total-summary>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px;background:#fffdf8;}
+.booking-total-summary span{font-size:14px;color:#4b554f;}
+.booking-total-summary strong{font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.booking-total-summary__total,.booking-total-summary__balance{grid-column:span 1;background:#f5f0e6!important;}
+.booking-total-summary__total strong,.booking-total-summary__balance strong{font-size:21px;color:#143d31;}
 .booking-service-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 18px;}
 .booking-service-options--single{grid-template-columns:minmax(0,12rem);}
 .booking-service-options label{display:flex!important;grid-template-columns:none!important;align-items:center;gap:10px;min-height:42px;padding:6px 4px;cursor:pointer;font-size:15px!important;}
 .booking-service-options input[type="checkbox"]{width:20px!important;height:20px;min-height:20px!important;flex:0 0 20px;accent-color:#976f2e;}
 @media(max-width:700px){.booking-service-options{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:420px){.booking-service-options{grid-template-columns:1fr;}}
+@media(max-width:600px){.booking-total-summary{grid-template-columns:1fr;}.booking-total-summary__total,.booking-total-summary__balance{grid-column:auto;}}
 .expense-payment-summary{display:flex;align-items:center;min-width:0;}
 .expense-payment-summary dl{width:100%;margin:0;}
 .expense-payment-summary dl>div{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;}

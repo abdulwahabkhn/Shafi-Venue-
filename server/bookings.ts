@@ -24,7 +24,13 @@ export function bookingStore(path = resolve('.cms-local/bookings.sqlite')) {
       if (id && (!previous || previous.version !== version)) throw new Error('Record changed. Reload before saving.');
       if (input.total < (previous?.paid ?? 0)) throw new Error('Total cannot be lower than recorded payments.');
       if (holdsSlot(input) && records.some(b => b.id !== id && holdsSlot(b) && overlap(b,input))) throw new Error('A selected hall already has a booking or hold during that time.');
-      const record: Booking = { ...input, id: id ?? randomUUID(), version: (previous?.version ?? 0) + 1, paid: previous?.paid ?? 0, createdAt: previous?.createdAt ?? new Date().toISOString() };
+      const record: Booking = { ...input, advanceAmount: previous ? (previous.advanceAmount ?? previous.paid ?? 0) : (input.advanceAmount ?? 0), advanceMethod: previous?.advanceMethod ?? input.advanceMethod, advanceReference: previous?.advanceReference ?? input.advanceReference, id: id ?? randomUUID(), version: (previous?.version ?? 0) + 1, paid: previous?.paid ?? 0, createdAt: previous?.createdAt ?? new Date().toISOString() };
+      const advance = previous ? 0 : (input.advanceAmount ?? 0);
+      if (advance > 0) {
+        const key = randomUUID();
+        db.prepare('INSERT INTO payments VALUES(?,?,?,?,?,?)').run(key, record.id, advance, input.advanceMethod, input.advanceReference, new Date().toISOString());
+        record.paid += advance;
+      }
       db.prepare('INSERT OR REPLACE INTO bookings VALUES(?,?,?)').run(record.id, JSON.stringify(record), record.version);
       audit(record.id, previous ? 'Booking updated' : 'Booking created');
       return record;

@@ -38,8 +38,30 @@ export async function saveBooking(raw:unknown,id:string,version?:number,actor='S
  if(version!==undefined && (!existing || existing.version!==version)) throw new Error('Record changed. Reload the booking before saving.');
  const occupied=(await c.query("SELECT body FROM shafi_bookings WHERE body->>'status' IN ('Hold','Confirmed','Completed')")).rows.map(r=>r.body);
  const input=validateBooking(raw,existing,occupied);
- const b:Booking={...input,id,version:(existing?.version??0)+1,paid:existing?.paid??0,createdAt:existing?.createdAt??new Date().toISOString(),reference:existing?.reference??`SM-${new Date().getUTCFullYear()}-${id.slice(0,8).toUpperCase()}`};
+ // The advance entered alongside a new booking is a real receipt. Persist it
+ // in the same transaction as the booking so the list balance, payment
+ // history and dashboard all agree. Further receipts and reductions belong
+ // in the payment workflow and never rewrite history when a booking is edited.
+ const previousPaid=existing?.paid??0;
+ const requestedAdvance=input.advanceAmount??0;
+ // Advance is the initial receipt captured while creating a booking. Further
+ // receipts and refunds are recorded from the payment panel, so editing an
+ // existing booking must never replay that initial receipt.
+ const advanceToRecord=existing ? 0 : requestedAdvance;
+ const b:Booking={...input,
+   advanceAmount:existing ? (existing.advanceAmount??previousPaid) : requestedAdvance,
+   advanceMethod:existing?.advanceMethod??input.advanceMethod,
+   advanceReference:existing?.advanceReference??input.advanceReference,
+   id,version:(existing?.version??0)+1,paid:previousPaid,createdAt:existing?.createdAt??new Date().toISOString(),reference:existing?.reference??`SM-${new Date().getUTCFullYear()}-${id.slice(0,8).toUpperCase()}`};
  await c.query('INSERT INTO shafi_bookings(id,body,version) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET body=EXCLUDED.body,version=EXCLUDED.version',[id,JSON.stringify(b),b.version]);
+ if(advanceToRecord>0){
+   const paymentId=randomUUID();
+   const payment={id:paymentId,booking:id,key:paymentId,kind:'Receipt',amount:advanceToRecord,method:input.advanceMethod,reference:input.advanceReference,reason:'',created:new Date().toISOString()};
+   await c.query('INSERT INTO shafi_booking_payments(id,booking,body) VALUES($1,$2,$3)',[paymentId,id,JSON.stringify(payment)]);
+   b.paid+=advanceToRecord;
+   await c.query('UPDATE shafi_bookings SET body=$2 WHERE id=$1',[id,JSON.stringify(b)]);
+   await audit(c,b,`Advance receipt: PKR ${advanceToRecord} (${input.advanceMethod})`,actor);
+ }
  await audit(c,b,existing?`Booking updated: ${existing.status} → ${b.status}`:'Booking created',actor);return b;
 });}
 export async function recordPayment(id:string,raw:unknown,actor='Shared administrator'){return write(async c=>{
