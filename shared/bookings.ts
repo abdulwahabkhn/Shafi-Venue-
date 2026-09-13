@@ -2,6 +2,15 @@ import { z } from 'zod';
 import { bookingHallOptions, sharesHall } from './halls.js';
 
 export const bookingAdditionalServices = ['Stage','Floors','Fireworks','Flower machine','Focus lights','Sufi entry','Violin entry','Balloon entry','Ground decor'] as const;
+export const bookingTimeSlots = ['Lunch', 'Dinner'] as const;
+export type BookingTimeSlot = (typeof bookingTimeSlots)[number];
+export const bookingTimeSlotTimes: Record<BookingTimeSlot, { start: string; end: string }> = {
+  Lunch: { start: '11:00', end: '16:00' },
+  Dinner: { start: '18:00', end: '23:00' },
+};
+export function timeSlotForTimes(start: string, end: string): BookingTimeSlot {
+  return start < '17:00' ? 'Lunch' : 'Dinner';
+}
 
 const bookingAmount = z.number().int().min(0).max(1000000000);
 
@@ -11,8 +20,11 @@ const bookingInputShape = z.object({
   hall: z.enum(bookingHallOptions),
   event: z.enum(['Barat', 'Walima', 'Mehndi', 'Nikkah', 'Corporate', 'Other']),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v, 'Choose a valid date'),
-  start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  // Start/end are retained internally for overlap checks and legacy records;
+  // the portal exposes the simpler Lunch/Dinner slot instead.
+  start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+  end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+  timeSlot: z.enum(bookingTimeSlots).optional(),
   guests: z.number().int().min(1).max(100000),
   // `total` remains optional on input so records created before the amount
   // breakdown was introduced continue to load. New records always receive a
@@ -35,11 +47,13 @@ const bookingInputShape = z.object({
 });
 
 export const bookingInput = bookingInputShape.transform(v => {
+  const timeSlot = v.timeSlot ?? timeSlotForTimes(v.start ?? '18:00', v.end ?? '23:00');
+  const slotTimes = bookingTimeSlotTimes[timeSlot];
   const breakdownTotal = v.hallAmount + v.stageAmount + v.additionalServicesAmount;
   // Legacy payloads only have `total`; preserve it when no breakdown was
   // supplied. Any new breakdown (including a zero total) becomes authoritative.
   const total = breakdownTotal > 0 || v.total === undefined ? breakdownTotal : v.total;
-  return { ...v, total };
+  return { ...v, timeSlot, start: v.start ?? slotTimes.start, end: v.end ?? slotTimes.end, total };
 }).refine(v => !v.endDate || (!Number.isNaN(Date.parse(v.endDate)) && new Date(v.endDate).toISOString().slice(0,10) === v.endDate), 'Choose a valid end date')
   .refine(v => `${v.endDate || v.date}T${v.end}` > `${v.date}T${v.start}`, 'End date/time must be after start date/time')
   .refine(v => v.status !== 'Hold' || !!v.holdUntil, 'A tentative hold needs an expiry time')
