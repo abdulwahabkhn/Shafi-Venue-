@@ -37,6 +37,16 @@ async function query(sql,values=[]){
  if(insert){const columns=insert[2].split(',');const id=values[columns.indexOf('id')];const body=values[columns.indexOf('body')];if(body)table(insert[1]).set(id,JSON.parse(body));return result([]);}
  const update=sql.match(/^UPDATE (shafi_\w+) SET body=\$2 WHERE id=\$1/);
  if(update){table(update[1]).set(values[0],JSON.parse(values[1]));return result([]);}
+ if(sql.includes("SUM(CASE WHEN body->>'date'<$1")){
+  const groups=new Map();for(const r of table('shafi_expenses').values()){
+   if(r.voidedAt||r.date>values[0]||!['Cash issue','Expense','Cash return'].includes(r.kind))continue;
+   const key=r.kind+'|'+r.method,group=groups.get(key)||{kind:r.kind,method:r.method,amount:0,prior:0};group.amount+=r.amount;if(r.date<values[0])group.prior+=r.amount;groups.set(key,group);
+  }return result([...groups.values()]);
+ }
+ if(sql.includes("SELECT DISTINCT body->>'name'"))return result([...table('shafi_expenses').values()].filter(r=>r.kind==='Expense'&&r.name).map(r=>({name:r.name})));
+ if(sql.includes("FROM shafi_expenses WHERE body->>'kind'=")&&sql.includes("body->>'date'=$1")){
+  const kind=sql.includes("='Cash issue'")?'Cash issue':'Expense';return result([...table('shafi_expenses').values()].filter(r=>r.kind===kind&&r.date===values[0]).map(body=>({body})));
+ }
  const select=sql.match(/FROM (shafi_\w+)/);
  if(select){let rows=[...table(select[1]).values()];if(sql.includes('WHERE id=$1'))rows=rows.filter(r=>r.id===values[0]);if(sql.includes('COUNT(*) total'))return result([{total:rows.length}]);return result(rows.map(body=>({id:body.id,body})));}
  throw Error('Unimplemented test SQL: '+sql);
@@ -90,7 +100,7 @@ try{
  const allDenied=Object.fromEntries(shared.accountantPermissionKeys.map(k=>[k,false]));
  for(const actor of [gm,accountant,custom]){
   accounts.get(actor.id).permissions=allDenied;
-  for(const resource of ['users','expense-sheet','inventory-register','attendance','employees','report','monthly-summary','inventory','rentals','cash-reconciliation','files','download']){
+  for(const resource of ['funding','users','expense-sheet','inventory-register','attendance','employees','report','monthly-summary','inventory','rentals','cash-reconciliation','files','download']){
    const response=await handleStaff(request(actor,resource));ok(response.status===403,actor.role+' denied '+resource);
   }
   for(const [resource,data] of Object.entries({users:{entry:entry(custom)},'expense-sheet':{entry:{}},'inventory-register':{action:'add',entry:{}},attendance:{entry:{}},employees:{entry:{}},payment:{entry:{kind:'Salary'}},'void-payment':{reason:'Test'},'stock-item':{entry:{}},'cash-count':{entry:{}}})){
@@ -108,6 +118,7 @@ try{
  }
  for(const actor of [gm,accountant]){
   for(const [permission,resource,data] of [
+   ['expenseIssue','funding',{entry:{}}],
    ['expenseAdd','expense-sheet',{entry:{}}],
    ['expenseRemove','expense-sheet',{action:'remove',reason:'test'}],
    ['inventoryAdd','inventory-register',{action:'add',entry:{}}],
@@ -134,7 +145,41 @@ try{
  const employee={name:'Local test employee',phone:'',sector:'Office',title:'Assistant',hall:null,employment:'Permanent',joined:shared.pkToday(),status:'Active',exited:null,exitReason:'',salary:10000,salaryEffective:shared.pkToday(),notes:''};
  ok((await handleStaff(request(director,'employees',{id:employeeId,entry:employee}))).status===200,'Director can save employees');
  ok((await handleStaff(request(director,'attendance',{id:randomUUID(),entry:{employeeId,date:shared.pkToday(),status:'Present',note:'',bookingId:null}}))).status===200,'Director can save attendance');
- console.log(count+' permission checks passed; production database was not contacted.');
+ // Funding uses a shared running ledger; all test records stay in memory.
+ const expenseTable=table('shafi_expenses'),savedExpenses=new Map(expenseTable);expenseTable.clear();
+ const today=shared.pkToday(),priorDate=new Date(today+'T00:00:00Z');priorDate.setUTCDate(priorDate.getUTCDate()-1);const yesterday=priorDate.toISOString().slice(0,10);
+ const seed=(kind,amount,date,method='Cash',extra={})=>{const id=randomUUID();expenseTable.set(id,{id,kind,amount,date,method,actor:'Fixture',...extra});return id;};
+ seed('Expense',1200,yesterday);seed('Expense',300,today,'Bank transfer');
+ seed('Cash issue',999999,'2099-01-01');seed('Expense',99999,today,'Cash',{voidedAt:today});seed('Salary',88888,today);
+ const funds=async actor=>{const response=await handleStaff(request(actor,'funding'));assert.equal(response.status,200);return response.json();};
+ let balance=await funds(director);
+ ok(balance.remaining===-1500&&balance.opening===-1200,'Overspending carries forward from yesterday without resetting or including future/voided entries');
+ const cashIssueId=randomUUID(),cashIssue={amount:1000,method:'Cash',purpose:'Daily expenses',reference:''};
+ const issueResponse=await handleStaff(request(director,'funding',{id:cashIssueId,entry:cashIssue}));ok(issueResponse.status===200,'Director can record petty cash issued');
+ const issueCount=expenseTable.size;
+ ok((await handleStaff(request(director,'funding',{id:cashIssueId,entry:cashIssue}))).status===200&&expenseTable.size===issueCount,'Retrying the same issue does not duplicate money');
+ ok((await handleStaff(request(director,'funding',{id:cashIssueId,entry:{...cashIssue,amount:2000}}))).status!==200,'Changed retry cannot replace an issued amount');
+ balance=await funds(director);ok(balance.remaining===-500,'Top-up partially clears negative balance');
+ const bankId=randomUUID();ok((await handleStaff(request(director,'funding',{id:bankId,entry:{amount:2000,method:'Bank transfer',purpose:'Petty expense funds',reference:'TEST-ONLY'}}))).status===200,'Bank funds can be issued separately');
+ balance=await funds(director);ok(balance.remaining===1500&&balance.issuedCash===1000&&balance.issuedBank===2000,'New bank funds first clear the deficit, then leave spendable funds');
+ const returnId=seed('Cash return',100,today);balance=await funds(director);ok(balance.remaining===1400,'Recorded returns reduce the shared fund');expenseTable.delete(returnId);
+ const sheetResponse=await handleStaff(request(director,'expense-sheet&date='+today));const sheet=await sheetResponse.json();
+ ok(sheet.total===300&&sheet.funding.remaining===1500&&sheet.issues.length===2,'Daily expense sheet separates daily expense/issuance from all-time balance');
+ const historical=await handleStaff(request(director,'expense-sheet&date='+yesterday));const historic=await historical.json();ok(historic.total===1200&&historic.funding.remaining===-1200&&historic.funding.issued===0,'Historical sheet excludes later top-ups');
+ ok((await handleStaff(request(director,'funding',{id:randomUUID(),entry:{...cashIssue,amount:0}}))).status!==200,'Zero funds are rejected');
+ ok((await handleStaff(request(director,'funding',{id:randomUUID(),entry:{...cashIssue,method:'Bank transfer'}}))).status!==200,'Bank reference is validated');
+ accounts.get(accountant.id).permissions={expenseView:true,expenseAdd:true};
+ ok((await handleStaff(request(accountant,'funding',{id:randomUUID(),entry:cashIssue}))).status===403,'Expense entry access cannot issue funds');
+ ok((await funds(accountant)).remaining===1500,'Accountant reads the same shared balance as Director');
+ accounts.get(gm.id).permissions={expenseView:true,expenseIssue:true};
+ ok((await handleStaff(request(gm,'funding',{id:randomUUID(),entry:{...cashIssue,amount:10}}))).status===200,'GM can issue funds with enabled permission');
+ ok((await handleStaff(request(gm,'funding',{id:bankId,action:'remove',reason:'Incorrect transfer'}))).status===200,'Authorized removal corrects funds without deleting history');
+ balance=await funds(director);ok(balance.remaining===-490&&expenseTable.get(bankId).voidedAt,'Removing an issue can expose a deficit and preserves the original record');
+ const expId=[...expenseTable.values()].find(r=>r.kind==='Expense'&&r.date===today&&!r.voidedAt).id;
+ ok((await handleStaff(request(director,'expense-sheet',{id:expId,action:'remove',reason:'Duplicate expense'}))).status===200,'Expense removal succeeds');
+ ok((await funds(director)).remaining===-190,'Removing an expense restores its funds');
+ expenseTable.clear();for(const [id,row]of savedExpenses)expenseTable.set(id,row);
+ console.log(count+' permission and funding checks passed; production database was not contacted.');
  if(process.argv.includes('--ui')){
   for(const actor of [gm,accountant])accounts.get(actor.id).permissions={};
   uiHandler=async(req,res,next)=>{

@@ -23,7 +23,7 @@ export async function logoutStaff(){
 const permissionLabels:Record<AccountantPermissionKey,string>={
  booking:'View, add and edit bookings',bookingReceipt:'Record receipts',bookingRefund:'Record refunds',
  inventoryView:'View inventory',inventoryAdd:'Add items and quantities',inventoryRemove:'Remove items and quantities',inventoryDamage:'Record damage',inventoryReplace:'Record replacements',
- expenseView:'View expense sheet',expenseAdd:'Add expenses',expenseRemove:'Remove expenses',
+ expenseView:'View expense sheet',expenseAdd:'Add expenses',expenseRemove:'Remove expenses',expenseIssue:'Issue funds and remove issued funds',
  employeeView:'View employees',employeeAdd:'Add and edit employees',employeeRemove:'Change employment status',
  employeeSalary:'Record salary and wages',employeeAdvance:'Record advances and repayments',
  attendanceView:'View attendance',attendanceEdit:'Mark and edit attendance',
@@ -32,7 +32,7 @@ const permissionLabels:Record<AccountantPermissionKey,string>={
 const parentPermission:Partial<Record<AccountantPermissionKey,AccountantPermissionKey>>={
  bookingReceipt:'booking',bookingRefund:'booking',
  inventoryAdd:'inventoryView',inventoryRemove:'inventoryView',inventoryDamage:'inventoryView',inventoryReplace:'inventoryView',
- expenseAdd:'expenseView',expenseRemove:'expenseView',
+ expenseAdd:'expenseView',expenseRemove:'expenseView',expenseIssue:'expenseView',
  employeeAdd:'employeeView',employeeRemove:'employeeView',employeeSalary:'employeeView',employeeAdvance:'employeeView',attendanceEdit:'attendanceView'
 };
 function permissionDefaults(role:string,permissions?:AccountantPermissions):AccountantPermissions{

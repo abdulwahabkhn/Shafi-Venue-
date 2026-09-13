@@ -1,3 +1,4 @@
+import { fundingSummary,recordFunding } from '../server/funding.js';
 import { expenseSheet,addExpenseRow,removeExpenseRow,inventoryRegister,addInventoryItem,inventoryAction,monthlySummary } from '../server/registers.js';
 import { z } from 'zod';
 import { requestUrl, type RuntimeRequest } from '../server/auth.js';
@@ -16,11 +17,12 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(request.method==='POST'&&resource==='logout'){await body(request);const response=json({ok:true});response.headers.set('Set-Cookie',await staffLogout(request));return response;}
  const actor=await actorFor(request);if(!actor)return json({error:'Sign in to the staff portal.'},401);
  // Retired ledgers have no granular permission controls. Keep them Director-only.
- const supported=['session','users','expense-sheet','inventory-register','attendance','employees','report','monthly-summary','payment','void-payment'];
+ const supported=['funding','session','users','expense-sheet','inventory-register','attendance','employees','report','monthly-summary','payment','void-payment'];
  if(actor.role!=='Director'&&!supported.includes(resource))return json({error:'This legacy operation is unavailable. Use the current registers.'},403);
- const viewPermission={ 'expense-sheet':'expenseView','inventory-register':'inventoryView',attendance:'attendanceView',employees:'employeeView',payment:'employeeView','void-payment':'employeeView',report:'reportsView','monthly-summary':'overviewView',users:'staffManage'} as const;
+ const viewPermission={ funding:'expenseView', 'expense-sheet':'expenseView','inventory-register':'inventoryView',attendance:'attendanceView',employees:'employeeView',payment:'employeeView','void-payment':'employeeView',report:'reportsView','monthly-summary':'overviewView',users:'staffManage'} as const;
  if(resource in viewPermission)requirePermission(actor,viewPermission[resource as keyof typeof viewPermission]);
  if(request.method==='GET'){
+  if(resource==='funding')return json(await fundingSummary(actor,requestUrl(request).searchParams.get('date')));
   if(resource==='expense-sheet'){if(!hasPermission(actor,'expenseView'))return json({error:'Expense viewing is not enabled for this account.'},403);return json(await expenseSheet(actor,requestUrl(request).searchParams.get('date')));}
   if(resource==='inventory-register'){if(!hasPermission(actor,'inventoryView'))return json({error:'Inventory viewing is not enabled for this account.'},403);return json(await inventoryRegister(actor));}
   if(resource==='monthly-summary'){if(!hasPermission(actor,'overviewView'))return json({error:'Overview is not enabled for this account.'},403);return json(await monthlySummary(actor,requestUrl(request).searchParams.get('month')));}
@@ -40,6 +42,7 @@ export async function handleStaff(request:RuntimeRequest){try{
  if(resource==='expense-sheet'){if(!hasPermission(actor,data.action==='remove'?'expenseRemove':'expenseAdd'))return json({error:'That expense action is not enabled for this account.'},403);return json(data.action==='remove'?await removeExpenseRow(actor,id,data.reason):await addExpenseRow(actor,id,data.entry));}
  if(resource==='inventory-register'){{const key=data.action==='add'?'inventoryAdd':['Damaged','Write off damage'].includes(data.entry?.action)?'inventoryDamage':['Replaced'].includes(data.entry?.action)?'inventoryReplace':['Remove quantity','Archive'].includes(data.entry?.action)?'inventoryRemove':'inventoryAdd';if(!hasPermission(actor,key))return json({error:'That inventory action is not enabled for this account.'},403);}return json(data.action==='add'?await addInventoryItem(actor,id,data.entry):await inventoryAction(actor,id,data.entry));}
  if(resource==='files')return json(await saveFile(actor,id,data.entry));
+ if(resource==='funding')return json(await recordFunding(actor,id,data.action==='remove'?data.reason:data.entry,data.action));
  const version=data.version===undefined?undefined:z.number().int().positive().parse(data.version);
  if(resource==='users')return json(await saveUser(actor,id,data.entry));
  if(resource==='employees'){if(!hasPermission(actor,data.entry?.status&&data.entry.status!=='Active'?'employeeRemove':'employeeAdd'))return json({error:'That employee action is not enabled for this account.'},403);return json(await saveEmployee(actor,id,data.entry,version));}

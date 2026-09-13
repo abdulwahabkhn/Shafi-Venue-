@@ -67,3 +67,10 @@
 .expense-payment-summary dl>div+div{margin-top:12px;padding-top:12px;border-top:1px solid #d9ded6;}
 .expense-payment-summary dt{font-size:15px;}
 .expense-payment-summary dd{margin:0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.expense-remaining small{display:block;margin-top:8px;font-size:14px;}
+.expense-remaining>span+strong+span{display:block;font-size:14px;}
+.funding-ledger{margin-bottom:24px;}
+.ops-funding-balance{margin:0 0 24px;padding:16px;border:1px solid #56796c;color:#f8f4e9;}
+.ops-funding-balance>span,.ops-funding-balance>small{display:block;line-height:1.5;}
+.ops-funding-balance>strong{display:block;margin:8px 0;font-size:22px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.ops-funding-balance>small{font-size:13px;}

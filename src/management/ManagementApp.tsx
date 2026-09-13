@@ -1,3 +1,4 @@
+import FundingBalance from './FundingBalance';
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { ArrowRight, CalendarDays, ClipboardList, FileBarChart, LayoutDashboard, Menu, ReceiptText, Settings2, ShieldCheck, Sparkles, Users, Warehouse, X } from 'lucide-react';
 import './management.css';
@@ -63,6 +64,7 @@ function ManagementShell(){
    <div className="ops-top-actions"><div className="ops-avatar" aria-hidden="true">SC</div><button className="ops-profile" onClick={signOut} title="Sign out">{actor.name} · {actor.role}</button></div>
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
+   <FundingBalance/>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
    <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>limitedNavAccess(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
