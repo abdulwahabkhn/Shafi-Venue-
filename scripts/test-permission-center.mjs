@@ -43,6 +43,9 @@ async function query(sql,values=[]){
    const key=r.kind+'|'+r.method,group=groups.get(key)||{kind:r.kind,method:r.method,amount:0,prior:0};group.amount+=r.amount;if(r.date<values[0])group.prior+=r.amount;groups.set(key,group);
   }return result([...groups.values()]);
  }
+ if(sql.includes("COALESCE(SUM((body->>'amount')::numeric),0) AS total")&&sql.includes("body->>'kind'='Expense'")){
+  const total=[...table('shafi_expenses').values()].filter(r=>r.kind==='Expense'&&!r.voidedAt&&r.date<=values[0]).reduce((sum,r)=>sum+Number(r.amount),0);return result([{total}]);
+ }
  if(sql.includes("SELECT DISTINCT body->>'name'"))return result([...table('shafi_expenses').values()].filter(r=>r.kind==='Expense'&&r.name).map(r=>({name:r.name})));
  if(sql.includes("FROM shafi_expenses WHERE body->>'kind'=")&&sql.includes("body->>'date'=$1")){
   const kind=sql.includes("='Cash issue'")?'Cash issue':'Expense';return result([...table('shafi_expenses').values()].filter(r=>r.kind===kind&&r.date===values[0]).map(body=>({body})));
@@ -158,7 +161,7 @@ try{
  seed('Cash issue',999999,'2099-01-01','Cash',{fundScope:'expense-sheet'});seed('Expense',99999,today,'Cash',{voidedAt:today,fundScope:'expense-sheet'});seed('Salary',88888,today);
  const funds=async actor=>{const response=await handleStaff(request(actor,'funding'));assert.equal(response.status,200);return response.json();};
  let balance=await funds(director);
- ok(balance.remaining===0&&balance.opening===0,'Unfunded spend stays at zero and future/voided entries are excluded');
+ ok(balance.remaining===0&&balance.opening===0&&balance.totalExpense===1500,'Unfunded spend stays at zero and future/voided entries are excluded while total expense remains visible');
  const cashIssueId=randomUUID(),cashIssue={amount:1000,method:'Cash',purpose:'Daily expenses',reference:''};
  const issueResponse=await handleStaff(request(director,'funding',{id:cashIssueId,entry:cashIssue}));ok(issueResponse.status===200,'Director can record petty cash issued');
  const issueCount=expenseTable.size;

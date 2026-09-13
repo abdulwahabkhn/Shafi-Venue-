@@ -10,7 +10,7 @@ export type FundingEntry = {id:string;date:string;amount:number;method:string;pu
 export type FundingSummary = {
   date:string; issuedCash:number; issuedBank:number; issued:number;
   totalIssued:number; opening:number; remaining:number; remainingCash:number; remainingBank:number;
-  spent:number; returned:number;
+  spent:number; returned:number; totalExpense:number;
 };
 export type FundingBucket = {kind:string;method:string;amount:number|string;prior:number|string};
 
@@ -26,5 +26,5 @@ export function summarizeFunding(date:string, buckets:FundingBucket[]):FundingSu
   };
   const issuedCash=sum('Cash issue','Cash')-sum('Cash issue','Cash',true);
   const issuedBank=sum('Cash issue','Bank transfer')-sum('Cash issue','Bank transfer',true);
-  return {date,issuedCash,issuedBank,issued:issuedCash+issuedBank,totalIssued:sum('Cash issue'),opening:balance(undefined,true),remaining:balance(),remainingCash:balance('Cash'),remainingBank:balance('Bank transfer'),spent:sum('Expense'),returned:sum('Cash return')};
+  return {date,issuedCash,issuedBank,issued:issuedCash+issuedBank,totalIssued:sum('Cash issue'),opening:balance(undefined,true),remaining:balance(),remainingCash:balance('Cash'),remainingBank:balance('Bank transfer'),spent:sum('Expense'),returned:sum('Cash return'),totalExpense:0};
 }

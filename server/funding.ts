@@ -14,7 +14,8 @@ export async function fundingSummary(actor:Actor, raw:string|null, client:Pick<P
     FROM shafi_expenses WHERE body->>'date'<=$1 AND body->>'voidedAt' IS NULL
     AND body->>'kind' IN ('Cash issue','Expense','Cash return')
     AND body->>'fundScope'='expense-sheet' GROUP BY 1,2`,[date]);
-  return summarizeFunding(date,rows);
+  const totalResult=await client.query("SELECT COALESCE(SUM((body->>'amount')::numeric),0) AS total FROM shafi_expenses WHERE body->>'kind'='Expense' AND body->>'date'<=$1 AND body->>'voidedAt' IS NULL",[date]);
+  return {...summarizeFunding(date,rows),totalExpense:Number(totalResult.rows[0]?.total||0)};
 }
 export async function fundingEntries(date:string, client:Pick<PoolClient,'query'>):Promise<FundingEntry[]> {
   const {rows}=await client.query("SELECT body FROM shafi_expenses WHERE body->>'kind'='Cash issue' AND body->>'fundScope'='expense-sheet' AND body->>'date'=$1 ORDER BY created,id",[date]);
