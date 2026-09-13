@@ -23,7 +23,7 @@ export async function logoutStaff(){
 const permissionLabels:Record<AccountantPermissionKey,string>={
  booking:'View, add and edit bookings',bookingReceipt:'Record receipts',bookingRefund:'Record refunds',
  inventoryView:'View inventory',inventoryAdd:'Add items and quantities',inventoryRemove:'Remove items and quantities',inventoryDamage:'Record damage',inventoryReplace:'Record replacements',
- expenseView:'View expense sheet',expenseAdd:'Add expenses',expenseRemove:'Remove expenses',expenseIssue:'Issue funds and remove issued funds',
+ expenseView:'View expense sheet',expenseAdd:'Add expenses',expenseRemove:'Remove expenses',expenseIssue:'Issue funds and remove issued funds (Director controlled)',
  employeeView:'View employees',employeeAdd:'Add and edit employees',employeeRemove:'Change employment status',
  employeeSalary:'Record salary and wages',employeeAdvance:'Record advances and repayments',
  attendanceView:'View attendance',attendanceEdit:'Mark and edit attendance',
@@ -95,7 +95,7 @@ function PermissionMatrix({role,permissions,onChange,actor}:{role:string;permiss
  }
  return <div className="account-permissions"><strong>{role==='GM'?'GM':'Account'} permissions</strong><p>Select All for a category, or choose individual actions. Editing actions also enable the viewing access they need. Voiding employee payments requires both salary and advance access.</p>
  {Object.entries(accountantPermissionGroups).map(([group,groupKeys])=>{
-  const keys=groupKeys.filter(k=>k!=='staffManage'||role==='GM');
+  const keys=groupKeys.filter(k=>(k!=='staffManage'||role==='GM')&&(k!=='expenseIssue'||actor.role==='Director'));
   if(!keys.length)return null;
   const available=keys.filter(k=>permissionEnabled(actor,k)),all=keys.every(k=>permissions[k]),some=keys.some(k=>permissions[k]);
   return <fieldset key={group} className="permission-group"><legend>{group}</legend>

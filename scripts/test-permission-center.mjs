@@ -79,6 +79,11 @@ try{
  await auth.saveUser(director,director.id,entry(director));
  await auth.saveUser(director,gm.id,entry(gm,{booking:true,bookingRefund:false}));
  await auth.saveUser(director,accountant.id,entry(accountant,{expenseView:true,expenseAdd:true,expenseRemove:false}));
+ await auth.saveUser(director,gm.id,entry(gm,{booking:true,bookingRefund:false,expenseIssue:true}));
+ ok(accounts.get(gm.id).permissions.expenseIssue===true,'Director can grant GM fund-issuing access');
+ await denied(auth.saveUser(gm,accountant.id,entry(accountant,{expenseView:true,expenseIssue:true})),'GM cannot grant fund-issuing access');
+ await auth.saveUser(director,gm.id,entry(gm,{booking:true,bookingRefund:false,expenseIssue:false}));
+ ok(accounts.get(gm.id).permissions.expenseIssue===false,'Director can revoke GM fund-issuing access');
  ok(accounts.get(gm.id).permissions.bookingRefund===false,'Director persists GM permissions');
  ok(accounts.get(accountant.id).permissions.expenseRemove===false,'Director persists Accountant permissions');
  ok(audits.some(a=>a.permissions?.bookingRefund===false),'Permission change appears in audit');

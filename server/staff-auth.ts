@@ -49,21 +49,25 @@ export async function saveUser(actor:Actor,id:string,raw:unknown){
  if(id===actor.id&&!input.active)throw new AccessError('You cannot disable your current account.');
  if(id===actor.id&&input.role!==actor.role)throw new AccessError('You cannot change your own role.');
  const password=input.password?await passwordHash(input.password):null;
- const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash,role FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
+ let currentFundAccess=false;let savedPermissions:Record<string,boolean>={};
+ const c=await bookingPool().connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7352421)');const existing=(await c.query('SELECT id,password_hash,role,permissions FROM shafi_users WHERE id=$1',[id])).rows[0];if(!existing&&!password)throw new Error('Set a password for the new account.');
  if(actor.role!=='Director'){
   if(['GM','Director'].includes(existing?.role)||['GM','Director'].includes(input.role))throw new AccessError('Only the Director can manage GM and Director accounts.');
   for(const [permission,enabled] of Object.entries(input.permissions))if(enabled&&!hasPermission(actor,permission as AccountantPermissionKey))throw new AccessError('You cannot grant access that the Director has not enabled for you.');
+  currentFundAccess=existing?.permissions?.expenseIssue===true;
+  if(actor.role==='GM'&&input.permissions.expenseIssue!==undefined&&input.permissions.expenseIssue!==currentFundAccess)throw new AccessError('Only the Director can change fund-issuing access.');
  }
  if(existing?.role==='Director'&&(!input.active||input.role!=='Director')){
   const others=await c.query("SELECT id FROM shafi_users WHERE role='Director' AND active=true AND id<>$1",[id]);
   if(!others.rowCount)throw new AccessError('Keep at least one active Director account.');
  }
 
- await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash,permissions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash),permissions=$8',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash,JSON.stringify(input.role==='Director'?{}:input.permissions)]);
+ savedPermissions=input.role==='Director'?{}:{...input.permissions,...(actor.role==='GM'?{expenseIssue:currentFundAccess}:{})};
+ await c.query('INSERT INTO shafi_users(id,username,name,role,hall,active,password_hash,permissions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET username=$2,name=$3,role=$4,hall=$5,active=$6,password_hash=COALESCE($7,shafi_users.password_hash),permissions=$8',[id,input.username,input.name,input.role,null,input.active,password||existing?.password_hash,JSON.stringify(savedPermissions)]);
  await c.query('DELETE FROM shafi_sessions WHERE user_id=$1',[id]);
- await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions})]);await c.query('COMMIT');
+ await c.query('INSERT INTO shafi_staff_audit(id,entity,action,actor,snapshot) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,existing?'Account updated; sessions revoked':'Account created',actor.name,JSON.stringify({name:input.name,role:input.role,hall:input.hall,active:input.active,permissions:savedPermissions})]);await c.query('COMMIT');
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
- return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active,permissions:input.permissions};
+ return {id,name:input.name,username:input.username,role:input.role,hall:input.hall,active:input.active,permissions:savedPermissions};
 }
 
 export function requirePermission(actor:Actor,key:AccountantPermissionKey){if(!hasPermission(actor,key))throw new AccessError('This action is not enabled for your account. Ask the Director to review your permissions.');}

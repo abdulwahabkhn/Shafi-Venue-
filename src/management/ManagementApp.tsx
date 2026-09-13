@@ -61,10 +61,9 @@ function ManagementShell(){
   <header className="ops-topbar">
    <button className="ops-mobile-menu" aria-label={mobileNav?'Close navigation':'Open navigation'} aria-expanded={mobileNav} aria-controls="operations-sidebar" onClick={()=>setMobileNav(value=>!value)}>{mobileNav?<X aria-hidden="true"/>:<Menu aria-hidden="true"/>}</button>
    <a className="ops-brand" href="/management" aria-label="Shafi Complex venue operations" onClick={e=>{if(!canNavigate())e.preventDefault();}}><img src="/media/shafi-marquee-logo.jpg" width="46" height="46" alt=""/><span>Shafi Complex <small>Venue operations</small></span></a>
-   <div className="ops-top-actions"><div className="ops-avatar" aria-hidden="true">SC</div><button className="ops-profile" onClick={signOut} title="Sign out">{actor.name} · {actor.role}</button></div>
+   <div className="ops-top-actions"><FundingBalance/><div className="ops-avatar" aria-hidden="true">SC</div><button className="ops-profile" onClick={signOut} title="Sign out">{actor.name} · {actor.role}</button></div>
   </header>
   <aside id="operations-sidebar" className={`ops-sidebar ${mobileNav?'is-open':''}`}>
-   <FundingBalance/>
    <div className="ops-sidebar-context"><span className="ops-live-dot"/>Jaranwala venue</div>
    <nav aria-label="Operations sections"><p>Workspace</p>{navItems.filter(item=>limitedNavAccess(item.id)).map(({id,label,icon:Icon})=><button key={id} className={view===id?'is-active':''} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
    <div className="ops-sidebar-divider"/>
